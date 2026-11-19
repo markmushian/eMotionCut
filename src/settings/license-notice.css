@@ -1,0 +1,37 @@
+/* 开源许可：在应用内看，跟昼夜主题走，不再弹出无样式的黑底文本窗口 */
+html .ec-license-link {
+  display: inline-flex; align-items: center; gap: 6px; width: fit-content;
+  margin-top: 4px; padding: 6px 11px; border: 1px solid var(--ec-rule-2); border-radius: 8px;
+  background: var(--ec-paper-3); color: var(--ec-ink); font: inherit; font-size: 12.5px; cursor: pointer;
+}
+html .ec-license-link:hover { border-color: var(--ec-mint); color: var(--ec-mint); }
+
+html .ec-license-dialog {
+  width: min(860px, calc(100vw - 40px)); max-width: min(860px, calc(100vw - 40px));
+  max-height: 86vh; gap: 10px; border-radius: 14px;
+  border: 1px solid #ffffff1f; background: #0d1c21; color: #eaf6f3;
+  box-shadow: 0 24px 80px #0009;
+}
+html .ec-license-dialog h2 { font-size: 18px; font-weight: 600; margin: 0; }
+html .ec-license-dialog p { margin: 0; color: #93aca6; font-size: 12.5px; line-height: 1.7; }
+html .ec-license-brand { padding: 12px 15px; border: 1px solid #ffffff1a; border-radius: 10px; background: linear-gradient(120deg, #0a927c1f, #4d8b3214); }
+html .ec-license-brand__name { font-size: 17px; font-weight: 700; letter-spacing: .01em; background: linear-gradient(96deg, #3fe0c8, #8fd35b); -webkit-background-clip: text; background-clip: text; color: transparent; }
+html .ec-license-brand p { margin: 5px 0 7px; }
+html .ec-license-brand a { color: #3fe0c8; font-size: 12.5px; text-decoration: none; }
+html .ec-license-brand a:hover { text-decoration: underline; }
+html[data-ec-shell]:not([data-ec-mode="night"]) .ec-license-brand { border-color: #bcd5ce; background: linear-gradient(120deg, #0a927c12, #4d8b320c); }
+html[data-ec-shell]:not([data-ec-mode="night"]) .ec-license-brand__name { background: linear-gradient(96deg, #0a927c, #4d8b32); -webkit-background-clip: text; background-clip: text; }
+html[data-ec-shell]:not([data-ec-mode="night"]) .ec-license-brand a { color: #0a927c; }
+html .ec-license-dialog__text {
+  margin: 8px 0 0; padding: 16px 18px; max-height: 62vh; overflow: auto;
+  border: 1px solid #ffffff14; border-radius: 10px; background: #081418;
+  color: #c9ded9; font: 12px/1.75 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap; word-break: break-word; scrollbar-color: #2a4a45 transparent;
+}
+html[data-ec-shell]:not([data-ec-mode="night"]) .ec-license-dialog {
+  border-color: #d8e6e2; background: #ffffff; color: #10231f; box-shadow: 0 24px 80px rgba(16,48,42,.18);
+}
+html[data-ec-shell]:not([data-ec-mode="night"]) .ec-license-dialog p { color: #6c8680; }
+html[data-ec-shell]:not([data-ec-mode="night"]) .ec-license-dialog__text {
+  border-color: #d8e6e2; background: #f6faf9; color: #3c5651; scrollbar-color: #9fc6bd transparent;
+}

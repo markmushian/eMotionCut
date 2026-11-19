@@ -1,0 +1,211 @@
+import {spawnAgentProcess} from './agent-launch.ts';
+import {AGENT_CONNECTION_IDS,LIGHT_AGENT_MODULES,connectionReadyForLight,connectionReadyForFilm} from '../shared/agent-connections.ts';
+import platform from './platform.ts';
+import {atomicJsonSync} from './file-ops.ts';
+import installations from './agent-installation.ts';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { createInterface } from 'node:readline';
+import { z } from 'zod';
+import { AGENT_MODULES, defaultAgentSettings, effectiveChoice, type AgentCatalog, type AgentModule, type AgentSettings, type AgentRun, type AgentSettingsView } from '../src/studio/agent-settings.ts';
+import { execFileAsync } from './proc.ts';
+
+export const agentSettingsFile = () => process.env.LINKREADER_AGENT_SETTINGS_FILE || path.join(platform.standardDataRoot(),'agent-settings.json');
+export function atomicAgentJson(file: string, value: unknown) {
+  atomicJsonSync(file, value, {mode:0o600});
+}
+const choiceSchema = z.object({ agent:z.enum(AGENT_CONNECTION_IDS).optional(), model: z.string().regex(/^[a-zA-Z0-9._\/:,-]+$/), effort: z.enum(['none','minimal','low','medium','high','xhigh','max','ultra']) }).strict();
+const settingsSchema = z.object({ version: z.literal(1), allowRemoteAi: z.boolean().default(false), cliPath: z.string().trim(), modules: z.record(z.enum(AGENT_MODULES.map(m => m.id)), choiceSchema) }).strict();
+export function readAgentSettings(): AgentSettings {
+  const file = agentSettingsFile();
+  if (!fs.existsSync(file)) return defaultAgentSettings();
+  try { const stored=JSON.parse(fs.readFileSync(file,'utf8')); return settingsSchema.parse({...stored,modules:{...defaultAgentSettings().modules,...stored.modules}}); }
+  catch { throw new Error('Agent 配置文件损坏，请检查 agent-settings.json；未自动改用其他模型'); }
+}
+/**
+ * A saved path that no longer works falls back to auto-detection. Versions before 1.0.0 saved whatever they found,
+ * often the Codex bundled inside the old app, which 1.0.0 removed. A path being typed in still fails on its own.
+ */
+export function resolveCliPath(configured = readAgentSettings().cliPath): string {
+  try { return installations.resolveAgent('codex', configured); }
+  catch (error) {
+    if (!configured || configured !== readAgentSettings().cliPath) throw error;
+    return installations.resolveAgent('codex', '');
+  }
+}
+/** Clears a saved Codex path that stopped working, only if it is still the one saved. */
+export function forgetStaleCliPath(stale: string) {
+  const settings = readAgentSettings();
+  if (stale && settings.cliPath === stale) atomicAgentJson(agentSettingsFile(), { ...settings, cliPath: '' });
+}
+export async function checkCliPath(configured: string) {
+  const executable = resolveCliPath(configured);
+  const { stdout } = await execFileAsync(executable, ['--version'], { timeout: 8_000, maxBuffer: 64 * 1024, env: installations.loginEnvironment() });
+  if (!/codex/i.test(stdout)) throw new Error('所选文件没有返回 Codex CLI 版本');
+  return { executable, cliVersion: stdout.trim() };
+}
+const ModelPage = z.object({ data: z.array(z.object({ model: z.string(), displayName: z.string(), hidden: z.boolean().optional(), supportedReasoningEfforts: z.array(z.object({ reasoningEffort: z.string() })), defaultReasoningEffort: z.string(), isDefault: z.boolean().optional() })), nextCursor: z.string().nullable().optional() });
+const catalogs = new Map<string, AgentCatalog>();
+const pending = new Map<string, Promise<AgentCatalog>>();
+
+/**
+ * 模型目录落盘：读一次要起 Codex app-server（最长 25 秒），每次重启应用都重读一遍
+ * 就是用户看到的「正在读取模型」。缓存键带上可执行文件的 mtime + 大小，
+ * 换了 Codex 版本会自然失效；要立刻重读走设置里的「读取模型」（refresh=true）。
+ */
+const catalogCacheFile = () => path.join(path.dirname(agentSettingsFile()), 'agent-catalog-cache.json');
+function readCatalogCache(key: string): AgentCatalog | undefined {
+  try {
+    const stored = JSON.parse(fs.readFileSync(catalogCacheFile(), 'utf8')) as { key?: string; catalog?: AgentCatalog };
+    return stored.key === key && stored.catalog?.models?.length ? stored.catalog : undefined;
+  } catch { return undefined }
+}
+function writeCatalogCache(key: string, catalog: AgentCatalog) {
+  try { atomicAgentJson(catalogCacheFile(), {key, catalog}); } catch { /* 缓存写不进去不影响本次结果 */ }
+}
+
+/** Read the selected binary's real account model catalog, not a hardcoded UI list. */
+export async function getAgentCatalog(configured: string, refresh = false): Promise<AgentCatalog> {
+  const connection=(process.platform==='darwin'||process.platform==='win32')?(await import('./agent-connections.ts')).getConnectionConfig('codex'):undefined;
+  if(connection?.mode==='api'){
+    if(!connection.connected||!connection.models.length)throw Error('Codex API 接入还没有读取模型，请先测试连接');
+    let executable='';try{executable=resolveCliPath(configured)}catch{/* API only can serve light work. */}
+    return {executable,cliVersion:'Codex · API 密钥',checkedAt:connection.checkedAt||new Date().toISOString(),models:connection.models.map(m=>({...m,efforts:['none','minimal','low','medium','high','xhigh','max','ultra'],defaultEffort:'medium'}))};
+  }
+  const executable = resolveCliPath(configured);
+  const stat = fs.statSync(executable);
+  const key = `${executable}:${stat.mtimeMs}:${stat.size}`;
+  const cached = catalogs.get(key);
+  if (!refresh) {
+    if (cached && Date.now() - Date.parse(cached.checkedAt) < 30 * 60_000) return cached;
+    const stored = readCatalogCache(key);
+    if (stored) { catalogs.set(key, stored); return stored; }
+  }
+  if (pending.has(key)) return pending.get(key)!;
+  const request = (async () => {
+    const { cliVersion } = await checkCliPath(executable);
+    const models = await new Promise<AgentCatalog['models']>((resolve, reject) => {
+      const child = spawnAgentProcess(executable, ['app-server', '--stdio'], { stdio: ['pipe','pipe','ignore'], env: installations.loginEnvironment() });
+      const lines = createInterface({ input: child.stdout });
+      let settled = false, bytes = 0;
+      const all: AgentCatalog['models'] = [];
+      const finish = (error?: Error) => {
+        if (settled) return; settled = true; clearTimeout(timer); lines.close(); child.stdin.end(); child.kill('SIGTERM');
+        const kill = setTimeout(() => { if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL'); }, 1000); kill.unref();
+        if (error) reject(error); else resolve(all);
+      };
+      const timer = setTimeout(() => finish(new Error('读取 Codex 模型列表超时，请检查 CLI 登录与连接')), 25_000);
+      const send = (message: unknown) => child.stdin.write(`${JSON.stringify(message)}\n`);
+      child.on('error', finish); child.stdin.on('error', finish);
+      child.on('exit', () => { if (!settled) finish(new Error('Codex 未返回模型列表，请确认 CLI 已登录且支持 app-server')); });
+      lines.on('line', line => {
+        bytes += line.length;
+        if (bytes > 2 * 1024 * 1024) { finish(new Error('Codex 模型列表超过大小限制')); return; }
+        try {
+          const result = JSON.parse(line);
+          if (result.error) { finish(new Error(result.error.message || '无法读取 Codex 模型列表')); return; }
+          if (result.id === 1) { send({ method: 'initialized' }); send({ id: 2, method: 'model/list', params: { includeHidden: false, limit: 100 } }); }
+          if (result.id === 2) {
+            const page = ModelPage.parse(result.result);
+            all.push(...page.data.filter(m => !m.hidden).map(m => ({ id: m.model, name: m.displayName, efforts: m.supportedReasoningEfforts.map(e => e.reasoningEffort), defaultEffort: m.defaultReasoningEffort, ...(m.isDefault ? { isDefault: true } : {}) })));
+            if (page.nextCursor) send({ id: 2, method: 'model/list', params: { includeHidden: false, limit: 100, cursor: page.nextCursor } });
+            else if (!all.length) finish(new Error('Codex 没有返回可选模型'));
+            else finish();
+          }
+        } catch (error) { finish(new Error(`无法解析 Codex 模型列表：${String(error)}`)); }
+      });
+      send({ id: 1, method: 'initialize', params: { clientInfo: { name: 'linkreader_agents', version: '1.0.0' } } });
+    });
+    const catalog = { executable, cliVersion, models, checkedAt: new Date().toISOString() };
+    catalogs.set(key, catalog);
+    writeCatalogCache(key, catalog);
+    return catalog;
+  })();
+  pending.set(key, request);
+  try { return await request; } finally { pending.delete(key); }
+}
+export function validateAgentChoice(module: AgentModule, settings: AgentSettings, catalog: AgentCatalog) {
+  const name = AGENT_MODULES.find(m => m.id === module)!.name;
+  if (!catalog.models.length) throw new Error(`${name}：Codex 没有返回可选模型`);
+  return effectiveChoice(settings.modules[module], catalog.models);
+}
+export async function saveAgentSettings(value: unknown) {
+  const settings = settingsSchema.parse(value);
+  const hasCodex=AGENT_MODULES.some(m=>!settings.modules[m.id].agent||settings.modules[m.id].agent==='codex');
+  const catalog = hasCodex ? await getAgentCatalog(settings.cliPath, true) : null;
+  for (const module of AGENT_MODULES) {
+    // A model this Codex lacks is kept (it runs on the default); an effort the chosen model rejects is a mistake to fix now.
+    const agentId=settings.modules[module.id].agent||'codex';
+    if(agentId!=='codex'){
+      const {getConnectionStatus}=await import('./agent-connections.ts');const connection=await getConnectionStatus(agentId);
+      if(!connection.enabled||!connection.connected)throw Error(`${module.name}：所选智能体未接通`);
+      if(module.id!=='generalEditing'&&(!(LIGHT_AGENT_MODULES as readonly string[]).includes(module.id)||!connectionReadyForLight(connection)))throw Error(`${module.name}：所选智能体暂不支持这项工作`);
+      if(module.id==='generalEditing'&&!connectionReadyForFilm(connection))throw Error('出片需要已适配的命令行');
+      continue;
+    }
+    if(!catalog)throw Error('Codex 没有返回可用模型');
+    validateAgentChoice(module.id, settings, catalog);
+    const choice = settings.modules[module.id], model = catalog.models.find(m => m.id === choice.model);
+    if (model && !model.efforts.includes(choice.effort)) throw new Error(`${module.name}：${choice.model} 不支持推理强度 ${choice.effort}`);
+  }
+  // Empty path keeps automatic detection enabled.
+  atomicAgentJson(agentSettingsFile(), settings);
+  return { settings, catalog, runs: recentAgentRuns() };
+}
+export function recentAgentRuns(): AgentRun[] {
+  const dir = path.join(path.dirname(agentSettingsFile()), 'agent-runs')
+  if (!fs.existsSync(dir)) return []
+  return fs.readdirSync(dir).filter(f => f.endsWith('.json')).sort().reverse().slice(0, 20).flatMap(f => {
+    try { return [JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) as AgentRun]; } catch { return []; }
+  });
+}
+/** 清理调用记录：默认只保留最近 20 条，也能按状态清（比如只删失败/已停止的）。 */
+export function clearAgentRuns(input: {statuses?: string[]; keep?: number} = {}) {
+  const dir = path.join(path.dirname(agentSettingsFile()), 'agent-runs')
+  if (!fs.existsSync(dir)) return {removed: 0, remaining: 0}
+  const statuses = Array.isArray(input.statuses) ? input.statuses.filter((s): s is string => typeof s === 'string') : []
+  const keep = Math.max(0, Math.min(500, Number(input.keep) || 20))
+  const all = fs.readdirSync(dir).filter(f => f.endsWith('.json')).sort().reverse()
+  const kept: string[] = [], doomed: string[] = []
+  for (const [index, file] of all.entries()) {
+    let run: AgentRun | undefined
+    try { run = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8')) as AgentRun } catch { /* 坏文件一并清掉 */ }
+    if (statuses.length && run && !statuses.includes(run.status)) { kept.push(file); continue }
+    if (!statuses.length && index < keep) { kept.push(file); continue }
+    doomed.push(file)
+  }
+  for (const file of doomed) { try { fs.unlinkSync(path.join(dir, file)) } catch { /* 已被清掉 */ } }
+  return {removed: doomed.length, remaining: kept.length}
+}
+export async function agentSettingsView(): Promise<AgentSettingsView> {
+  const settings = readAgentSettings();
+  try { return { settings, catalog: await getAgentCatalog(settings.cliPath), runs: recentAgentRuns() }; }
+  catch (error) { return { settings, catalog: null, catalogError: error instanceof Error ? error.message : String(error), runs: recentAgentRuns() }; }
+}
+export async function chooseAgentCli() {
+  if(process.platform==='win32'){const {createRequire}=await import('node:module');const {requestFileDialog}=createRequire(import.meta.url)('../desktop/file-dialogs.cjs');return {path:await requestFileDialog('executable')};}
+  if (process.platform !== 'darwin') throw new Error('此主机不支持文件选择器，请输入 CLI 的绝对路径');
+  try {
+    const { stdout } = await execFileAsync('osascript', ['-e', 'POSIX path of (choose file with prompt "选择 Codex CLI 可执行文件" with invisibles)'], { timeout: 120_000 });
+    return { path: stdout.trim() };
+  } catch (error) { if (String(error).includes('-128')) return { path: null }; throw error; }
+}
+
+/** 统一验证单个业务选择；不写全局设置，用于工程、稿子与单次任务。 */
+export const parseAgentChoice=(value:unknown)=>choiceSchema.parse(value);
+export async function validateModuleAgentChoice(module:AgentModule,value:unknown){
+ const choice=parseAgentChoice(value);if(!AGENT_MODULES.some(m=>m.id===module))throw Error('未知工作模块');
+ const {getConnectionStatus}=await import('./agent-connections.ts');const connection=await getConnectionStatus(choice.agent||'codex');
+ if(!connection.enabled||!connection.connected)throw Error('所选智能体未接通');
+ if(!(LIGHT_AGENT_MODULES as readonly string[]).includes(module)&&(!connection.cliInstalled||module==='generalEditing'&&!connectionReadyForFilm(connection)))throw Error('出片需要安装已适配的命令行');
+ if(choice.agent&&choice.agent!=='codex'&&module!=='generalEditing'&&(!(LIGHT_AGENT_MODULES as readonly string[]).includes(module)||!connectionReadyForLight(connection)))throw Error('此模块的智能体接法待适配，请使用已支持的接入');
+ return choice;
+}
+/** 单模块默认值：首次引导只修改自己的选择，不校验或覆盖其他模块。 */
+export async function saveModuleAgentChoice(module:AgentModule,value:unknown){
+ const choice=await validateModuleAgentChoice(module,value);
+ const settings=readAgentSettings();settings.modules[module]=choice;atomicAgentJson(agentSettingsFile(),settings);return choice;
+}

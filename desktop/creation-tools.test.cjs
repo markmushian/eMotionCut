@@ -1,0 +1,158 @@
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {doctor,probeBrowser,probeSandbox,PYTHON_ENV}=require('./creation-tools.cjs');
+const {SAMPLE_ARGS,RENDER_ARGS}=require('../shared/browser-launch.cjs');
+
+function fixture() {
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),"creation tools ' 中文-"));
+ const file=name=>{const p=path.join(root,name);fs.writeFileSync(p,'#!/bin/sh\nexit 0\n',{mode:0o755});return p};
+ const python=file('python3'),chrome=file('chromium'),ffmpeg=file('ffmpeg'),ffprobe=file('ffprobe'),codex=file('codex');
+ const calls=[],browsers=[];
+ const chromium={launch:async options=>{calls.push({browser:options});const b={closed:false,newPage:async()=>({setDefaultTimeout(){},setContent:async()=>{},screenshot:async()=>Buffer.from('png')}),close:async()=>{b.closed=true}};browsers.push(b);return b}};
+ const options={probeSandbox:async()=>{},env:{PATH:'/usr/bin:/bin',LINKREADER_PYTHON:python,CW_HFX_CHROME:chrome},chromium,codexPath:()=>codex,findMedia:()=>({ffmpeg,ffprobe}),run:async(file,args,extra)=>{calls.push({file,args,extra});return {stdout:file===python?'3.14 / numpy 2.4':'工具版本'}}};
+ return {root,python,chrome,ffmpeg,ffprobe,codex,options,calls,browsers,close:()=>fs.rmSync(root,{recursive:true,force:true})};
+}
+test('all tools are executed; Python uses agent isolation; host render mode closes; paths stay exact',async()=>{
+ const f=fixture();try{
+  const result=await doctor(f.options);assert.equal(result.ok,true);assert.deepEqual(result.tools,{python:f.python,chromium:f.chrome,ffmpeg:f.ffmpeg,ffprobe:f.ffprobe,codex:f.codex});
+  assert.deepEqual(f.calls.find(c=>c.file===f.python).extra.env,{...f.options.env,...PYTHON_ENV});
+  assert.ok(f.calls.some(c=>c.file===f.codex&&c.args.join(' ')==='login status'));
+  assert.equal(f.browsers.length,1);assert.ok(f.browsers.every(b=>b.closed));
+ }finally{f.close()}
+});
+for(const missing of ['numpy','chromium','ffmpeg','ffprobe','codex'])test(`missing ${missing} blocks; repair and retry returns verified paths`,async()=>{
+ const f=fixture();try{
+  const bad={...f.options};
+  if(missing==='chromium')bad.env={...f.options.env,CW_HFX_CHROME:path.join(f.root,'absent')};
+  else bad.run=async(file,args,extra)=>{
+   if(file===f[missing==='numpy'?'python':missing])throw Object.assign(Error('not ready'),{stderr:missing==='numpy'?"ModuleNotFoundError: No module named 'numpy'":'private login detail'});
+   return f.options.run(file,args,extra);
+  };
+  const result=await doctor(bad);assert.equal(result.ok,false);assert.equal(result.tools,undefined);
+  const item=result.items.find(i=>i.id===(missing==='numpy'?'python':missing==='ffprobe'?'ffmpeg':missing));assert.equal(item.color,'#9869dc');assert.ok(item.install);assert.ok(!JSON.stringify(result).includes('private login detail'));
+  assert.equal((await doctor(f.options)).ok,true);
+ }finally{f.close()}
+});
+test('browser file present but launch or screenshot fails: blocks and closes owned browser',async()=>{
+ const f=fixture();try{
+  let closed=false;
+  f.options.chromium={launch:async()=>({close:async()=>{closed=true},newPage:async()=>({setDefaultTimeout(){},setContent:async()=>{},screenshot:async()=>{throw Error('failed')}})})};
+  const result=await doctor(f.options);assert.equal(result.ok,false);assert.equal(closed,true);assert.match(result.items.find(i=>i.id==='chromium').message,/页面截图失败/);
+  assert.equal(result.items.find(i=>i.id==='chromium').diagnostic.stage,'screenshot');
+ }finally{f.close()}
+});
+test('pinned Playwright exposes matching headless shell registry without cache scans',()=>{
+ const {registry}=require('playwright-core/lib/coreBundle').registry;
+ const file=registry.findExecutable('chromium-headless-shell').executablePath();
+ assert.ok(path.isAbsolute(file));assert.match(file,/headless[-_]shell/);
+});
+
+for(const persistent of [false,true])test(`temporary compositor surface failure retries once; persistent=${persistent}`,async()=>{
+ let screenshots=0,closed=false;
+ const chromium={launch:async()=>({close:async()=>{closed=true},newPage:async()=>({setDefaultTimeout(){},setContent:async()=>{},screenshot:async()=>{
+  screenshots++;if(persistent||screenshots===1)throw Error('page.screenshot: Protocol error (Page.captureScreenshot): Unable to capture screenshot');
+  return Buffer.from('png');
+ }})})};
+ if(persistent)await assert.rejects(probeBrowser(chromium,'/fixture/chrome',{}),error=>error.stage==='screenshot'&&/Unable to capture screenshot/.test(error.message));
+ else await probeBrowser(chromium,'/fixture/chrome',{});
+ assert.equal(screenshots,2);assert.equal(closed,true);
+});
+
+test('host browser success cannot conceal failure inside the agent sandbox',async()=>{
+ const f=fixture();try{f.options.probeSandbox=async()=>{throw Error('sandbox denied')};const result=await doctor(f.options);assert.equal(result.ok,false);assert.match(result.items.find(i=>i.id==='chromium').message,/出片沙盒/);assert.equal(result.tools,undefined);}finally{f.close()}
+});
+
+test('sandbox script loading errors retain the denied path and stage without leaking secrets',async()=>{
+ const f=fixture();try{
+  f.options.probeSandbox=async()=>{throw Object.assign(Error('sandbox command failed'),{code:1,stderr:"EPERM: operation not permitted, stat 'C:\\Protected App\\desktop\\probe-creation-browser.cjs'\nMODULE_NOT_FOUND\nAuthorization: Bearer sk-privatekey1234567890"})};
+  const result=await doctor(f.options),item=result.items.find(i=>i.id==='chromium');
+  assert.equal(result.ok,false);assert.equal(item.diagnostic.stage,'script-load');
+  assert.match(item.message,/EPERM/);assert.match(item.message,/probe-creation-browser/);
+  assert.ok(!JSON.stringify(result).includes('sk-privatekey'));assert.equal(result.tools,undefined);
+ }finally{f.close()}
+});
+
+test('sandbox structured probe distinguishes screenshot failure from startup and bounds diagnostics',async()=>{
+ const f=fixture();try{
+  f.options.probeSandbox=async()=>{throw Object.assign(Error('child exit'),{stderr:'EMOTIONCUT_BROWSER_FAILURE '+JSON.stringify({stage:'screenshot',message:'capture failed '+ 'x'.repeat(20000)})})};
+  const item=(await doctor(f.options)).items.find(i=>i.id==='chromium');
+  assert.equal(item.diagnostic.stage,'screenshot');assert.match(item.message,/页面截图失败/);assert.ok(item.diagnostic.message.length<=8000);
+ }finally{f.close()}
+});
+
+test('沙盒仅允许单进程样张，服务端多进程渲染在沙盒外检查，整体通过',async()=>{
+ const f=fixture();try{
+  const hostLaunch=f.options.chromium.launch;
+  const hostArgs=[];
+  f.options.chromium={launch:async options=>{hostArgs.push(options.args);return hostLaunch(options)}};
+  let sandboxLaunches=0;
+  const sandboxChromium={launch:async options=>{
+   sandboxLaunches++;
+   if(!options.args.includes('--single-process')||!options.args.includes('--no-zygote'))throw Error('MachPortRendezvousServer Permission denied');
+   assert.deepEqual(options.args,SAMPLE_ARGS);
+   assert.ok(options.args.includes('--no-sandbox'));
+   return hostLaunch(options);
+  }};
+  f.options.probeSandbox=async(_codex,file,env)=>probeBrowser(sandboxChromium,file,env);
+  const result=await doctor(f.options);
+  assert.equal(result.ok,true,JSON.stringify(result.items));
+  assert.equal(sandboxLaunches,1);
+  assert.deepEqual(hostArgs,[RENDER_ARGS]);
+  assert.equal(hostArgs[0].includes('--single-process'),false);
+  assert.ok(f.browsers.every(browser=>browser.closed));
+ }finally{f.close()}
+});
+
+test('服务端渲染失败仍阻断，不用样张成功掩盖，并提示清理旧路径而非放宽权限',async()=>{
+ const f=fixture();try{
+  let sandboxCalls=0;f.options.probeSandbox=async()=>{sandboxCalls++};
+  f.options.chromium={launch:async options=>{assert.deepEqual(options.args,RENDER_ARGS);throw Error('render failed')}};
+  const result=await doctor(f.options),item=result.items.find(i=>i.id==='chromium');
+  assert.equal(result.ok,false);assert.equal(result.tools,undefined);assert.equal(sandboxCalls,0);
+  assert.match(item.message,/服务端渲染模式/);
+  for(const name of ['CW_HFX_CHROME','CW_CHROME','PLAYWRIGHT_CHROMIUM_EXECUTABLE'])assert.ok(item.install.includes(name));
+  assert.match(item.install,/不要关闭 Codex 沙盒/);
+ }finally{f.close()}
+});
+
+test('临时目录删不掉不算 Chromium 检查失败',{skip:process.platform==='win32'},async()=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'browser-check-clean-'));const codex=path.join(root,'codex');
+ fs.writeFileSync(codex,'#!/bin/sh\necho EMOTIONCUT_BROWSER_READY\n',{mode:0o755});
+ const rm=fs.rmSync;let seen;
+ fs.rmSync=(target,...rest)=>{if(String(target).includes('emotioncut-browser-check-')){seen=target;throw Object.assign(Error("EPERM, Permission denied: \\\\?\\"+target),{code:'EPERM'});}return rm(target,...rest)};
+ try{await probeSandbox(codex,'/bin/true',{PATH:process.env.PATH});assert.ok(seen);}
+ finally{fs.rmSync=rm;if(seen)rm(seen,{recursive:true,force:true});rm(root,{recursive:true,force:true});}
+});
+test('安装提示跟着平台走：本机是 Windows 就不该让人去敲 brew',async()=>{
+ const f=fixture();try{
+  // 让四项同时失败，检查它们给出的修法
+  const bad={...f.options,
+   env:{...f.options.env,CW_HFX_CHROME:path.join(f.root,'absent'),LINKREADER_PYTHON:path.join(f.root,'absent')},
+   findMedia:()=>{throw Error('缺少可执行的 ffmpeg 和 ffprobe')},
+   run:async()=>{throw Object.assign(Error('not ready'),{stderr:'not ready'})}};
+  const result=await doctor(bad);
+  assert.equal(result.ok,false);
+  assert.deepEqual(result.items.map(i=>i.id).sort(),['chromium','codex','ffmpeg','python']);
+  for(const item of result.items){
+   assert.ok(item.install,`${item.id} 缺少修法说明`);
+   if(process.platform==='win32'){
+    assert.doesNotMatch(item.install,/brew|macOS|\$HOME/,`${item.id} 在 Windows 上给出了 macOS 指令`);
+    // chromium 那条是跨平台的 npx 命令，不强制带 Windows 字样
+    if(item.id!=='chromium')assert.match(item.install,/Windows|重启 eMotionCut/);
+   }else{
+    assert.doesNotMatch(item.install,/winget|Windows：/,`${item.id} 在 macOS 上给出了 Windows 指令`);
+   }
+  }
+  // chromium 的修法必须点明要装的是 headless shell，不是笼统的 chromium
+  assert.match(result.items.find(i=>i.id==='chromium').install,/chromium-headless-shell/);
+ }finally{f.close()}
+});
+
+test('路径里的 emotioncut 不会被误判成脚本加载失败',()=>{
+ const {browserDiagnostic}=require('./browser-diagnostic.cjs');
+ const wrong=browserDiagnostic(Error("EPERM, Permission denied: \\\\?\\C:\\Temp\\emotioncut-browser-check-EH5dHn"),'sandbox');
+ assert.notEqual(wrong.diagnostic.stage,'script-load');
+ const real=browserDiagnostic(Error("EPERM: operation not permitted, stat 'C:\\Temp\\probe-creation-browser.cjs'"),'sandbox');
+ assert.equal(real.diagnostic.stage,'script-load');
+});

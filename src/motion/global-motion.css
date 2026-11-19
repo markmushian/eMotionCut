@@ -1,0 +1,195 @@
+/* ============================================================
+   全局动效层 —— 一次 import 覆盖整个 eMotionCut 界面
+   设计原则：克制、快速（120–320ms）、尊重 prefers-reduced-motion
+   只做视觉增强，不改变布局尺寸和交互逻辑，随时可整文件撤销
+   ============================================================ */
+
+:root {
+  --mo-fast: 140ms;
+  --mo-base: 220ms;
+  --mo-slow: 380ms;
+  --mo-ease: cubic-bezier(.22, .61, .36, 1);
+  --mo-spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* ——— 1. 按钮：悬停抬升 + 按下回弹 + 光泽扫过 ——— */
+button,
+[role='button'],
+a.mx-btn,
+.ec-btn,
+.mx-btn {
+  transition: transform var(--mo-fast) var(--mo-ease),
+              box-shadow var(--mo-base) var(--mo-ease),
+              background var(--mo-base) var(--mo-ease),
+              border-color var(--mo-base) var(--mo-ease),
+              color var(--mo-base) var(--mo-ease),
+              filter var(--mo-base) var(--mo-ease) !important;
+  position: relative;
+  overflow: hidden;
+}
+button:not(:disabled):hover,
+[role='button']:not([aria-disabled='true']):hover,
+.ec-btn:not(:disabled):hover,
+.mx-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .18), 0 0 0 1px rgba(255, 255, 255, .04) inset;
+}
+button:not(:disabled):active,
+.ec-btn:not(:disabled):active,
+.mx-btn:not(:disabled):active {
+  transform: translateY(0) scale(.97);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .2) inset;
+}
+/* 柔和光泽：伪元素从左扫到右 */
+button:not(:disabled)::after,
+.ec-btn:not(:disabled)::after,
+.mx-btn:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -60%;
+  width: 35%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .18), transparent);
+  transform: skewX(-20deg);
+  pointer-events: none;
+  opacity: 0;
+}
+button:not(:disabled):hover::after,
+.ec-btn:not(:disabled):hover::after,
+.mx-btn:not(:disabled):hover::after {
+  left: 130%;
+  opacity: 1;
+  transition: left var(--mo-slow) var(--mo-ease), opacity var(--mo-fast);
+}
+
+/* ——— 2. 卡片 / 面板：悬停浮起 + 入场渐上 ——— */
+.mx-wall-card,
+.mx-hero-card,
+.mx-cal-day,
+.mx-panel,
+.panel,
+.card,
+[class*='__card'],
+[class*='-card'] {
+  transition: transform var(--mo-base) var(--mo-ease),
+              box-shadow var(--mo-base) var(--mo-ease),
+              border-color var(--mo-base) var(--mo-ease) !important;
+}
+.mx-wall-card:not([data-on]):hover,
+.mx-hero-card:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .3) !important;
+}
+
+/* 列表项 / 表格行：轻微左移高亮 */
+.mx-task:hover,
+.mx-replay:hover,
+[class*='__row']:hover {
+  transform: translateX(3px);
+  transition: transform var(--mo-fast) var(--mo-ease), background var(--mo-fast);
+}
+
+/* ——— 3. 图片：入场淡入缩放 + hover 慢放大 ——— */
+img {
+  animation: mo-img-in var(--mo-slow) var(--mo-ease) both;
+}
+@keyframes mo-img-in {
+  from { opacity: 0; transform: scale(1.04); filter: blur(4px); }
+  to   { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+.mx-wall-cover,
+.mx-hero-cover,
+[class*='cover']:not(button) {
+  overflow: hidden;
+}
+.mx-wall-cover img,
+.mx-hero-cover img,
+[class*='cover'] img {
+  transition: transform 600ms var(--mo-ease), filter var(--mo-base) !important;
+}
+.mx-wall-card:hover .mx-wall-cover img,
+.mx-hero-card:hover .mx-hero-cover img,
+[class*='cover']:hover img {
+  transform: scale(1.09);
+  filter: saturate(1.12);
+}
+
+/* ——— 4. 界面入场：页面/面板/页签内容渐上 ——— */
+.mx-tab:hover,
+[class*='tab']:hover { transform: translateY(-1px); transition: transform var(--mo-fast), color var(--mo-fast), background var(--mo-fast); }
+
+@keyframes mo-rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.mx-stat,
+.mx-hero-card,
+.mx-wall-card,
+.mx-cal-day,
+.mx-review-metrics > div,
+[class*='panel'] > header,
+[class*='__head'] {
+  animation: mo-rise-in var(--mo-base) var(--mo-ease) both;
+}
+/* 错峰：卡片列表逐个浮现 */
+.mx-wall-card:nth-child(1) { animation-delay: 20ms; }
+.mx-wall-card:nth-child(2) { animation-delay: 45ms; }
+.mx-wall-card:nth-child(3) { animation-delay: 70ms; }
+.mx-wall-card:nth-child(4) { animation-delay: 95ms; }
+.mx-wall-card:nth-child(5) { animation-delay: 120ms; }
+.mx-wall-card:nth-child(n+6) { animation-delay: 145ms; }
+
+/* ——— 5. 数字跳动容器的微光提示 ——— */
+.mo-num { display: inline-block; font-variant-numeric: tabular-nums; }
+.mo-num[data-ticking='1'] { text-shadow: 0 0 18px currentColor; }
+
+/* ——— 6. 状态 chip 呼吸 / 加载旋转 / 进度条流动 ——— */
+.mx-chip[data-state='pending'],
+[class*='badge'][data-state='pending'] { animation: mo-breathe 2.4s ease-in-out infinite; }
+@keyframes mo-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+
+.spin,
+[class*='spinner'],
+svg.lucide-refresh-cw.spin { animation: mo-spin .9s linear infinite; }
+@keyframes mo-spin { to { transform: rotate(360deg); } }
+
+.mx-replay-track i,
+[class*='progress'] i,
+[class*='bar'] > i {
+  transition: width 900ms var(--mo-ease);
+  position: relative;
+}
+.mx-replay-track i::after,
+[class*='progress'] i::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .35), transparent);
+  animation: mo-shimmer 2.2s linear infinite;
+}
+@keyframes mo-shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+/* ——— 7. 焦点可见性（键盘体验） ——— */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--mx-mint, #3fe0c8);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ——— 8. 滚动条美化 ——— */
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(127, 127, 127, .35); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(63, 224, 200, .5); background-clip: content-box; }
+
+/* ——— 9. 尊重系统减少动效 —— 放在最后确保覆盖 ——— */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

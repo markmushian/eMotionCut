@@ -1,0 +1,108 @@
+{
+ "entries": [
+  {
+   "key": "footage",
+   "name": "上传视频就能做",
+   "hint": "自己拍的视频、录屏，可以多段",
+   "cats": [
+    {
+     "name": "产品发布",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "品牌广告·宣传片",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "知识讲解·课件",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "故事·绘本·短剧",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "音乐 MV·混剪",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "新闻·数据·报告",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "节日·活动·开场",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "旅行·城市·纪录",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "游戏·动漫",
+     "styles": [],
+     "star": []
+    }
+   ]
+  },
+  {
+   "key": "topic",
+   "name": "给文案就能做",
+   "hint": "一个想法、一段文字",
+   "cats": [
+    {
+     "name": "产品发布",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "品牌广告·宣传片",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "知识讲解·课件",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "故事·绘本·短剧",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "音乐 MV·混剪",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "新闻·数据·报告",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "节日·活动·开场",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "旅行·城市·纪录",
+     "styles": [],
+     "star": []
+    },
+    {
+     "name": "游戏·动漫",
+     "styles": [],
+     "star": []
+    }
+   ]
+  }
+ ]
+}

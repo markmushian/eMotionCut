@@ -1,0 +1,23 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env*
+.DS_Store
+._*
+release/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Generated source provenance; never commit local receipts.
+/release-source.json
+
+/.setup-state.json
+.build/
+native/windows/
+
+# Local dev launcher output
+/.dev/
+
+# Local verification artifacts
+/.verify-cover/

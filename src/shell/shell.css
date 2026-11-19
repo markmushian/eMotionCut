@@ -1,0 +1,572 @@
+/* Quiet studio chrome: navigation frames the work without pretending to be a terminal. */
+
+.ec-frame {
+  min-height: 100dvh;
+  background: transparent;
+}
+
+/* ── left rail ─────────────────────────────────────────────────────────── */
+
+.ec-rail {
+  position: fixed;
+  z-index: 60;
+  inset: 0 auto 0 0;
+  display: flex;
+  flex-direction: column;
+  width: var(--ec-rail);
+  background: var(--ec-paper-2);
+  border-right: 1px solid var(--ec-rule);
+  user-select: none;
+}
+
+.ec-rail__mark {
+  display: grid;
+  place-items: center;
+  height: var(--ec-ruler);
+  border-bottom: 1px solid var(--ec-rule);
+  text-decoration: none;
+  color: inherit;
+  flex: none;
+}
+
+.ec-rail__mark span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--ec-ink);
+  color: var(--ec-paper-2);
+  font-family: var(--ec-sans);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.04em;
+}
+
+.ec-rail__stages {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.ec-rail__stages::-webkit-scrollbar { display: none; }
+
+.ec-stage-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  height: 54px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-bottom: 0;
+  background: transparent;
+  color: var(--ec-ink-3);
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--ec-fast) var(--ec-ease), color var(--ec-fast) var(--ec-ease);
+}
+
+.ec-stage-btn:hover {
+  background: var(--ec-sink);
+  color: var(--ec-ink);
+}
+
+.ec-stage-btn__no {
+  font-family: var(--ec-mono);
+  font-size: 12px;
+  letter-spacing: .04em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.ec-stage-btn__name {
+  font-size: 12px;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.ec-stage-btn[aria-current="page"] {
+  background: var(--ec-paper-3);
+  color: var(--ec-ink);
+}
+
+.ec-stage-btn[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 2px;
+  background: var(--ec-ink);
+}
+
+.ec-stage-btn[aria-current="page"] .ec-stage-btn__no {
+  color: var(--ec-vermilion);
+}
+
+.ec-stage-btn[data-open="true"] {
+  background: var(--ec-paper-3);
+  color: var(--ec-ink);
+}
+
+.ec-stage-btn[data-open="true"] .ec-stage-btn__no {
+  color: var(--ec-vermilion);
+}
+
+.ec-rail__foot {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  border-top: 1px solid var(--ec-rule);
+}
+
+.ec-rail__foot button,
+.ec-rail__foot a {
+  display: grid;
+  place-items: center;
+  height: 38px;
+  border: 0;
+  background: transparent;
+  color: var(--ec-ink-3);
+  cursor: pointer;
+  transition: background var(--ec-fast) var(--ec-ease), color var(--ec-fast) var(--ec-ease);
+}
+
+.ec-rail__foot button:hover,
+.ec-rail__foot a:hover {
+  background: var(--ec-sink);
+  color: var(--ec-ink);
+}
+
+/* ── the flyout that lists a stage's rooms ─────────────────────────────── */
+
+.ec-rail-panel {
+  position: fixed;
+  z-index: 59;
+  top: var(--ec-ruler);
+  bottom: 0;
+  left: var(--ec-rail);
+  width: 258px;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: var(--ec-paper-3);
+  border-right: 1px solid var(--ec-rule-2);
+  box-shadow: 18px 0 40px -28px color-mix(in srgb, var(--ec-ink) 55%, transparent);
+  animation: ec-panel-in 150ms var(--ec-ease);
+}
+
+@keyframes ec-panel-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.ec-rail-panel__head {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  height: var(--ec-ruler);
+  padding: 0 18px;
+  border-bottom: 1px solid var(--ec-rule);
+  flex: none;
+}
+
+.ec-rail-panel__no {
+  font-family: var(--ec-mono);
+  font-size: 12px;
+  color: var(--ec-vermilion);
+}
+
+.ec-rail-panel__name {
+  font-family: var(--ec-serif);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ec-ink);
+}
+
+.ec-rail-panel__gloss {
+  margin-left: auto;
+  font-family: var(--ec-mono);
+  font-size: 9px;
+  letter-spacing: .18em;
+  color: var(--ec-ink-4);
+}
+
+.ec-rail-panel__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 0 20px;
+}
+
+.ec-rail-panel__item {
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 18px;
+  border-left: 2px solid transparent;
+  color: var(--ec-ink);
+  text-decoration: none;
+  transition: background var(--ec-fast) var(--ec-ease), border-color var(--ec-fast) var(--ec-ease);
+}
+
+.ec-rail-panel__item:hover {
+  background: var(--ec-sink);
+  border-left-color: var(--ec-rule-3);
+}
+
+.ec-rail-panel__item[aria-current="page"] {
+  background: var(--ec-sink);
+  border-left-color: var(--ec-vermilion);
+}
+
+.ec-rail-panel__item b {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+
+.ec-rail-panel__item small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ec-ink-3);
+}
+
+.ec-rail-panel__item .ec-rail-panel__itemno {
+  font-family: var(--ec-mono);
+  font-size: 11px;
+  color: var(--ec-ink-4);
+}
+
+.ec-rail-panel__item[aria-current="page"] .ec-rail-panel__itemno {
+  color: var(--ec-vermilion);
+}
+
+.ec-tag-pro {
+  font-family: var(--ec-mono);
+  font-size: 8.5px;
+  letter-spacing: .12em;
+  padding: 2px 4px;
+  border: 1px solid var(--ec-rule-2);
+  border-radius: 1px;
+  color: var(--ec-ochre);
+  line-height: 1;
+}
+
+.ec-rail-panel__note {
+  padding: 14px 18px;
+  border-top: 1px solid var(--ec-rule);
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--ec-ink-3);
+  flex: none;
+}
+
+/* ── the ruler across the top ─────────────────────────────────────────── */
+
+.ec-stage-wrap {
+  margin-left: var(--ec-rail);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.ec-ruler {
+  position: sticky;
+  z-index: 40;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: var(--ec-ruler);
+  flex: none;
+  padding: 0 14px 0 18px;
+  background: var(--ec-paper-2);
+  border-bottom: 1px solid var(--ec-rule);
+}
+
+html[data-ec-mode="night"] .ec-ruler {
+  background: color-mix(in srgb, var(--ec-paper-2) 94%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+html[data-ec-mode="night"] .ec-rail {
+  background: var(--ec-paper-2);
+}
+
+html[data-ec-mode="night"] .ec-rail__mark span {
+  background: var(--ec-grad);
+  color: #04140f;
+}
+
+html[data-ec-mode="night"] .ec-stage-btn:hover {
+  background: rgba(63, 224, 200, .05);
+  color: var(--ec-ink);
+}
+
+html[data-ec-mode="night"] .ec-stage-btn[aria-current="page"] {
+  background: rgba(63, 224, 200, .09);
+  color: var(--ec-ink);
+}
+
+html[data-ec-mode="night"] .ec-stage-btn[aria-current="page"]::before {
+  background: var(--ec-grad);
+  box-shadow: 0 0 12px rgba(63, 224, 200, .55);
+}
+
+html[data-ec-mode="night"] .ec-stage-btn[data-open="true"] {
+  background: rgba(63, 224, 200, .05);
+}
+
+/* A row of ticks under the ruler, like a steel rule on a cutting table. */
+.ec-ruler::after { display: none; }
+
+.ec-ruler__where {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex: none;
+  min-width: 0;
+}
+
+.ec-ruler__back {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 2px;
+  padding: 0;
+  border: 1px solid var(--ec-rule);
+  border-radius: var(--ec-radius);
+  background: transparent;
+  color: var(--ec-ink-2);
+  cursor: pointer;
+}
+
+.ec-ruler__back:hover {
+  background: var(--ec-paper-3);
+  color: var(--ec-ink);
+}
+
+.ec-ruler__no {
+  font-family: var(--ec-mono);
+  font-size: 11px;
+  color: var(--ec-vermilion);
+  letter-spacing: .04em;
+}
+
+.ec-ruler__sep {
+  width: 1px;
+  height: 12px;
+  background: var(--ec-rule-2);
+  align-self: center;
+}
+
+.ec-ruler__name {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--ec-ink);
+  white-space: nowrap;
+}
+
+.ec-ruler__slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ec-ruler__slot:empty {
+  display: none;
+}
+
+.ec-ruler__spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+.ec-ruler__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.ec-ruler__actions > * {
+  flex: none;
+}
+
+.ec-ruler__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: var(--ec-radius);
+  background: transparent;
+  color: var(--ec-ink-2);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background var(--ec-fast) var(--ec-ease), border-color var(--ec-fast) var(--ec-ease), color var(--ec-fast) var(--ec-ease);
+}
+
+.ec-ruler__btn:hover {
+  background: var(--ec-paper-3);
+  border-color: var(--ec-rule);
+  color: var(--ec-ink);
+}
+
+.ec-ruler__btn[aria-pressed="true"] {
+  background: var(--ec-ink);
+  border-color: var(--ec-ink);
+  color: var(--ec-paper-3);
+}
+
+/* Everything the old build dropped into the top bar (部署 / 升级 / 更新 / 设置) is re-dressed here
+   as a flat ruler button, so the shell does not inherit the glass chrome. */
+.ec-ruler__actions button,
+.ec-ruler__actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: var(--ec-radius);
+  background: transparent;
+  color: var(--ec-ink-2);
+  font: inherit;
+  font-size: 11.5px;
+  letter-spacing: .01em;
+  white-space: nowrap;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background var(--ec-fast) var(--ec-ease), border-color var(--ec-fast) var(--ec-ease), color var(--ec-fast) var(--ec-ease);
+}
+
+.ec-ruler__actions button:hover,
+.ec-ruler__actions a:hover {
+  background: var(--ec-paper-3);
+  border-color: var(--ec-rule);
+  color: var(--ec-ink);
+}
+
+.ec-ruler__actions .ot-deploy-nav,
+.ec-ruler__actions .ot-deploy-nav.is-ready {
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ec-ink-2);
+  font-weight: 500;
+  opacity: 1;
+  box-shadow: none;
+}
+
+.ec-ruler__actions .ot-deploy-nav::after {
+  display: none;
+}
+
+.ec-ruler__actions .ot-deploy-ring {
+  width: 13px;
+  height: 13px;
+}
+
+.ec-ruler__actions .ot-deploy-tick {
+  width: 6px;
+  height: 6px;
+  min-width: 6px;
+  border-radius: 0;
+  background: var(--ec-olive);
+  color: transparent;
+  font-size: 0;
+}
+
+.ec-ruler__actions .home-entry__button {
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: var(--ec-radius);
+  background: transparent;
+  color: var(--ec-ink-2);
+  font-size: 11.5px;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.ec-ruler__actions .home-entry__button:hover {
+  background: var(--ec-paper-3);
+  border-color: var(--ec-rule);
+  color: var(--ec-ink);
+}
+
+.ec-ruler__actions .standard-update-remind {
+  color: var(--ec-ochre);
+}
+
+.ec-ruler__actions .upgrade-dot {
+  width: 5px;
+  height: 5px;
+  background: var(--ec-vermilion);
+}
+
+/* The page title handed up by 通用工程 keeps its own layout; only its type is pulled onto paper. */
+.ec-ruler .workspace-project-title-slot {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 42vw;
+}
+
+.ec-ruler .workspace-project-title-slot * {
+  font-family: var(--ec-sans);
+}
+
+@media (max-width: 1180px) {
+  .ec-ruler__actions .system-settings-entry span,
+  .ec-ruler__actions .ot-deploy-nav span {
+    display: none;
+  }
+}
+
+.ec-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ec-body > .workspace-content {
+  flex: 1;
+  min-height: 0;
+}
+
+/* The editor brings its own dark surface; give it the full frame under the ruler. */
+.ec-body .studio-editor,
+.ec-body .openscreen-workspace-shell {
+  height: calc(100dvh - var(--ec-ruler));
+}
+
+@media (max-width: 900px) {
+  html[data-ec-shell] { --ec-rail: 60px; }
+  .ec-ruler__where .ec-ruler__name { display: none; }
+}
+
+/* The page hands its own title up to the ruler; the ruler already names the room, so drop the duplicate. */
+.ec-ruler .ge-navtitle { display: none; }

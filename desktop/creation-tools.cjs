@@ -1,0 +1,156 @@
+// macOS creation preflight shared by doctor and the local API. Never installs software.
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
+const {execFile} = require('node:child_process');
+const {promisify} = require('node:util');
+const installations = require('./agent-installation.cjs');
+const {browserDiagnostic}=require('./browser-diagnostic.cjs');
+
+const exec = promisify(execFile);
+const executable = file => { try { fs.accessSync(file, fs.constants.X_OK); return path.isAbsolute(file) && fs.statSync(file).isFile(); } catch { return false; } };
+const PYTHON_ENV = {PYTHONNOUSERSITE:'1', PYTHONDONTWRITEBYTECODE:'1', PYTHONPATH:''};
+const {SAMPLE_ARGS, sampleArgs, renderArgs} = require('../shared/browser-launch.cjs');
+// Windows 与 macOS 的装法完全不同，提示必须跟着平台走，否则用户照着敲只会得到
+// "brew 不是内部或外部命令"。
+const BROWSER_HINT = '若指定了浏览器路径，请先核对或清除 CW_HFX_CHROME、CW_CHROME、PLAYWRIGHT_CHROMIUM_EXECUTABLE 的旧值；需要自选时，仅设置 PLAYWRIGHT_CHROMIUM_EXECUTABLE 为兼容 Chromium 的绝对路径。已安装仍失败时，请保留失败阶段与路径交给维护者检查，再点“重新检查”；不要关闭 Codex 沙盒或自行放宽系统权限。';
+const windowsFixes = {
+ python: 'Windows：安装 Python 3（python.org 下载，或 winget install Python.Python.3.13），然后运行 python -m pip install numpy；把 LINKREADER_PYTHON 设为该 python.exe 的绝对路径，重启 eMotionCut 后重新检查。',
+ chromium: '在 Standard 源码目录运行：npx --no-install playwright-core install chromium-headless-shell。' + BROWSER_HINT,
+ ffmpeg: 'Windows：下载 ffmpeg 静态包（需同时含 ffmpeg.exe 与 ffprobe.exe），把两者放进同一个文件夹，把 LINKREADER_BIN_DIR 设为该文件夹，重启 eMotionCut 后重新检查；也可把该文件夹加入 PATH。',
+ codex: 'Windows：npm install -g @openai/codex，然后在终端运行 codex login；登录后重新检查。'
+};
+const macFixes = {
+ python: 'macOS：brew install python；然后 python3 -m venv "$HOME/.emotioncut-venv" && "$HOME/.emotioncut-venv/bin/python3" -m pip install numpy。启动 eMotionCut 前设置 LINKREADER_PYTHON 为该解释器的绝对路径。',
+ chromium: '在 Standard 源码目录运行：npx --no-install playwright-core install chromium。' + BROWSER_HINT,
+ ffmpeg: 'macOS：brew install ffmpeg。需要同时包含 ffmpeg 和 ffprobe；也可设置 LINKREADER_BIN_DIR 为两者所在目录。',
+ codex: 'macOS：npm install -g @openai/codex，然后在终端运行 codex login；登录后重新检查。'
+};
+const fixes = process.platform === 'win32' ? windowsFixes : macFixes;
+const PACKAGED_CHROMIUM_FIX='安装包已自带 Chromium，不用另外安装。请先点“重新检查”；仍失败时，核对或清除 CW_HFX_CHROME、CW_CHROME、PLAYWRIGHT_CHROMIUM_EXECUTABLE 的旧值，再把失败阶段与路径交给维护者。不要关闭 Codex 沙盒或自行放宽系统权限。';
+const packagedWindows=()=>process.platform==='win32'&&fs.existsSync(path.join(path.resolve(__dirname,'../../..'),'emotioncut-payload.json'));
+// Default: only the agent sample mode. The server explicitly passes renderArgs().
+async function probeBrowser(chromium, file, env, args = sampleArgs(env.CW_CHROME_GL)) {
+ let browser,stage='launch';
+ try {
+  browser = await chromium.launch({executablePath:file, headless:true, args, env, timeout:process.platform==='win32'?20000:10000});
+  stage='page';
+  const page = await browser.newPage({viewport:{width:64,height:64}});
+  page.setDefaultTimeout(5000);
+  await page.setContent('<html><body>eMotionCut</body></html>');
+  stage='screenshot';
+  // Chromium can briefly have no compositor surface after setContent. A
+  // successful launch/DOM is not sufficient: require an actual screenshot,
+  // retrying only this specific transient protocol failure once.
+  for(let attempt=0;;attempt++){
+   try { await page.screenshot({timeout:5000}); break; }
+   catch(error){
+    if(attempt!==0 || !/Page\.captureScreenshot.*Unable to capture screenshot/.test(error.message||''))throw error;
+    await new Promise(resolve=>setTimeout(resolve,250));
+   }
+  }
+ } catch(error){error.stage=stage;throw error;} finally { await browser?.close().catch(()=>{}); }
+}
+async function probeSandbox(codex,file,env) {
+ if(process.platform==='win32'){
+  const installRoot=path.resolve(__dirname,'../../..');
+  if(fs.existsSync(path.join(installRoot,'emotioncut-payload.json'))){
+   try{await exec(path.join(installRoot,'resources/runtimes/python/python.exe'),
+    ['-I','-S','-B',path.join(__dirname,'sandbox-read-access.py'),installRoot],
+    {env,windowsHide:true,timeout:30000,maxBuffer:65536});}
+   catch(error){error.stage='permission';throw error;}
+  }
+ }
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'emotioncut-browser-check-'));
+ const tmp=path.join(root,'tmp');fs.mkdirSync(tmp);
+ try {
+  const result=await exec(codex,['sandbox',
+   ...(process.platform==='win32'?['-c','windows.sandbox="elevated"']:[]),
+   '-c','sandbox_mode="workspace-write"',
+   '-c','sandbox_workspace_write.network_access=false',
+   '-c','sandbox_workspace_write.exclude_slash_tmp=true',
+   '-c','sandbox_workspace_write.exclude_tmpdir_env_var=true',
+   '--',process.execPath,path.join(__dirname,'probe-creation-browser.cjs'),file],
+   {cwd:root,env:{...env,TMPDIR:tmp,...(process.platform==='win32'?{TEMP:tmp,TMP:tmp}:{}),...(process.versions.electron?{ELECTRON_RUN_AS_NODE:'1'}:{})},timeout:process.platform==='win32'?60000:40000,maxBuffer:65536});
+  if(!result.stdout.includes('EMOTIONCUT_BROWSER_READY'))throw Object.assign(Error('未完成截图'),{stage:'protocol',stderr:result.stderr});
+ } finally {
+  // Windows can briefly keep the sandbox working folder locked. Leftover temp files must not fail the check.
+  try { fs.rmSync(root,{recursive:true,force:true,maxRetries:process.platform==='win32'?5:0,retryDelay:200}); } catch {}
+ }
+}
+async function doctor(options = {}) {
+ const env = options.env || installations.loginEnvironment(process.env, true);
+ const run = options.run || ((file,args,extra={}) => exec(file,args,{env,timeout:8000,maxBuffer:65536,...extra}));
+ const items = [], tools = {};
+ async function check(id,label,fn) {
+  try { const result = await fn(); items.push({id,label,ok:true,...result}); }
+  catch(e) { items.push({id,label,ok:false,message:e.message,...(e.diagnostic?{diagnostic:e.diagnostic}:{}),install:id==='chromium'&&packagedWindows()?PACKAGED_CHROMIUM_FIX:fixes[id],color:'#9869dc'}); }
+ }
+ if (options.agentCheck) {
+  await check('agent', options.agentLabel || '出片智能体', async()=>{
+   const agent=await options.agentCheck(); tools.agent=agent; return {path:agent.executable,version:'接入已检查'};
+  });
+ } else await check('codex','Codex 登录',async()=>{
+  let file;
+  try { file = options.codexPath ? options.codexPath() : installations.resolveAgent('codex','',{env}); }
+  catch { throw Error('未找到可运行的 Codex CLI'); }
+  try { await run(file,['login','status']); }
+  catch { throw Error('Codex 尚未登录，或无法读取登录状态'); }
+  // Never expose login-status stdout/stderr: it can contain account information.
+  tools.codex=file; return {path:file,version:'已登录'};
+ });
+ if (!options.onlyCodex) {
+ await check('python','Python 3 + numpy',async()=>{
+  const configured = env.LINKREADER_PYTHON;
+  const candidates = configured ? [configured] : [...new Set([
+   path.join(env.HOME || require('node:os').homedir(),'.emotioncut-venv',process.platform==='win32'?'Scripts/python.exe':'bin/python3'),
+   ...(env.PATH || env.Path || '').split(path.delimiter).filter(path.isAbsolute).flatMap(dir=>(process.platform==='win32'?['python.exe','python3.exe']:['python3']).map(name=>path.join(dir,name))),
+   '/opt/homebrew/bin/python3','/usr/local/bin/python3','/usr/bin/python3'
+  ])];
+  const failures = [];
+  for(const file of candidates) {
+   if(!executable(file)) { if(configured) failures.push(`${file} 不存在或不可执行`); continue; }
+   try {
+    const {stdout} = await run(file,['-c','import sys, numpy; assert sys.version_info.major == 3; print(sys.version.split()[0] + " / numpy " + numpy.__version__)'],{env:{...env,...PYTHON_ENV}});
+    tools.python = file; return {path:file,version:stdout.trim()};
+   } catch(e) { failures.push(`${file}：${/No module named ['"]numpy/.test(e.stderr || '') ? '缺少 numpy' : 'Python 或 numpy 无法运行'}`); }
+  }
+  throw Error(failures.join('；') || '未找到 Python 3');
+ });
+ await check('chromium','HyperFrames Chromium',async()=>{
+  const chromium = options.chromium || require('playwright-core').chromium;
+  const override = env.CW_HFX_CHROME || env.CW_CHROME || env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
+  // Let Playwright resolve its own installed headless-shell revision; never scan caches or temporary apps.
+  const file = override || (options.browserPath || require('playwright-core/lib/coreBundle').registry.registry.findExecutable('chromium-headless-shell').executablePath());
+  if(!file || !executable(file)) throw Error('Chromium 不存在或不可执行：'+file);
+  try { await probeBrowser(chromium,file,env,renderArgs()); }
+  catch(error) { throw browserDiagnostic(error,'host'); }
+  if(options.agentCheck) {
+   if(!tools.agent) throw Error('请先接通出片智能体，再重新检查 Chromium');
+   if(tools.agent.id==='codex') {
+    try { await (options.probeSandbox || probeSandbox)(tools.agent.executable,file,env); } catch(error) { throw browserDiagnostic(error,'sandbox'); }
+    tools.chromium=file; return {path:file,version:'服务端渲染模式、出片沙盒单进程样张模式均已完成截图'};
+   }
+   try { await probeBrowser(chromium,file,env,SAMPLE_ARGS); } catch(error) { throw browserDiagnostic(error,'host'); }
+   tools.chromium=file; return {path:file,version:'服务端渲染、样张模式已完成截图；智能体沙盒在启动时强制检查'};
+  }
+  if(!tools.codex)throw Error('请先完成 Codex 安装及登录，再重新检查 Chromium');
+  try { await (options.probeSandbox || probeSandbox)(tools.codex,file,env); }
+  catch(error) { throw browserDiagnostic(error,'sandbox'); }
+  tools.chromium=file; return {path:file,version:'服务端渲染模式、出片沙盒单进程样张模式均已完成截图'};
+ });
+ await check('ffmpeg','FFmpeg / ffprobe',async()=>{
+  const found = (options.findMedia || require('./media-tools.cjs').findTools)({env,loginEnv:env});
+  const versions=[];
+  for(const name of ['ffmpeg','ffprobe']) {
+   try { const {stdout}=await run(found[name],['-version']); versions.push(stdout.split('\n')[0]); }
+   catch { throw Error(name+' 已找到，但无法运行：'+found[name]); }
+  }
+  tools.ffmpeg=found.ffmpeg; tools.ffprobe=found.ffprobe;
+  return {path:found.ffmpeg+'\n'+found.ffprobe,version:versions.join('\n')};
+ });
+ }
+ items.sort((a,b)=>['python','chromium','ffmpeg','codex'].indexOf(a.id)-['python','chromium','ffmpeg','codex'].indexOf(b.id));
+ return {ok:items.every(item=>item.ok),checkedAt:new Date().toISOString(),items,...(items.every(item=>item.ok)?{tools}:{}),color:'#9869dc'};
+}
+module.exports={doctor,probeBrowser,probeSandbox,PYTHON_ENV,SAMPLE_ARGS};

@@ -1,0 +1,6 @@
+import {useSyncExternalStore} from 'react'
+import {useNavigate} from 'react-router'
+import {Check,CircleAlert,LoaderCircle,X} from 'lucide-react'
+import {creatorTaskSnapshot,dismissCreatorTask,subscribeCreatorTasks} from './creator-task-store'
+import './creator-task-dock.css'
+export default function CreatorTaskDock(){const tasks=useSyncExternalStore(subscribeCreatorTasks,creatorTaskSnapshot),navigate=useNavigate();const open=(task:(typeof tasks)[number])=>{window.dispatchEvent(new CustomEvent('emotioncut:creator-task-open',{detail:{...task}}));navigate(`${task.returnTo}${task.returnTo.includes('?')?'&':'?'}task=${task.id}`)};if(!tasks.length)return null;return <aside className="creator-task-dock" aria-label="AI 任务">{tasks.slice(0,3).map(task=><div key={task.id} data-state={task.state} role="button" tabIndex={0} onClick={()=>open(task)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();open(task)}}}>{task.state==='running'?<LoaderCircle className="spin"/>:task.state==='done'?<Check/>:<CircleAlert/>}<span><b>{task.title}</b><small>{task.state==='running'?'正在处理，可继续使用其他页面':task.state==='done'?'处理完成，点击回到结果':task.error||'处理失败，返回查看原因'}</small></span>{task.state!=='running'&&<button aria-label="关闭" onClick={e=>{e.stopPropagation();dismissCreatorTask(task.id)}}><X/></button>}</div>)}</aside>}

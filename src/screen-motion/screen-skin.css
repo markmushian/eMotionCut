@@ -1,0 +1,140 @@
+/* 剪辑台皮肤（注入到 OpenScreen 同源文档内部）
+   目的：把 iframe 里的旧“暖雾/石墨”玻璃主题换成排版台语言——纸白面板、发丝线、
+   近直角、朱红强调。变量沿用该文档自己的十六进制令牌，因此只换值不动结构。 */
+
+/* ── 纸白 ───────────────────────────────────────────────────────── */
+:root:root:root[data-ui-theme=warm] {
+  --bg: #e7e0d1;
+  --bg-grad: #e7e0d1;
+  --surface: #fbf7ec;
+  --surface-1: #f4eee1;
+  --surface-2: #ece4d3;
+  --surface-3: #e0d7c3;
+  --surface-hi: #f8f2e5;
+  --surface-warm: #efe7d6;
+  --border: #cec3ad;
+  --border-soft: #cec3ad88;
+  --border-hi: #a89d88;
+  --fg: #17140f;
+  --fg-2: #4b4539;
+  --fg-emphasis: #0d0b08;
+  --muted: #6b6353;
+  --muted-soft: #857b68;
+  --meta: #857b68;
+  --dim: #a89d88;
+  --brand: #b93b26;
+  --brand-lo: #9c3020;
+  --accent: #b93b26;
+  --accent-on: #fbf7ec;
+  --accent-soft: #b93b2622;
+  --accent-wash: #b93b2612;
+  --accent-border: #b93b2666;
+  --font-display: "Songti SC", "STSong", "Noto Serif SC", Georgia, serif;
+  --ec-if-playhead: #b93b26;
+  --ec-if-idle: #63633a;
+  color-scheme: light;
+}
+
+/* ── 墨夜 ───────────────────────────────────────────────────────── */
+:root:root:root[data-ui-theme=original] {
+  /* 录屏工作区与全站同一套深空青绿，不再单独用一套棕黑 */
+  --bg: #050a0e;
+  --bg-grad: #050a0e;
+  --surface: #0a151c;
+  --surface-1: #0d1a22;
+  --surface-2: #122530;
+  --surface-3: #16303a;
+  --surface-hi: #0f2029;
+  --surface-warm: #0b1a22;
+  --border: rgba(63,224,200,.22);
+  --border-soft: rgba(63,224,200,.13);
+  --border-hi: rgba(63,224,200,.34);
+  --fg: #e8f4f2;
+  --fg-2: #93a9a6;
+  --fg-emphasis: #f4fffc;
+  --muted: #5e7573;
+  --muted-soft: #50645f;
+  --meta: #5e7573;
+  --dim: #40514f;
+  --brand: #3fe0c8;
+  --brand-lo: #2bb9a5;
+  --accent: #3fe0c8;
+  --accent-on: #04140f;
+  --accent-soft: rgba(63,224,200,.15);
+  --accent-wash: rgba(63,224,200,.07);
+  --accent-border: rgba(63,224,200,.4);
+  --font-display: var(--ec-sans, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif);
+  --ec-if-playhead: #e8f4f2;
+  --ec-if-idle: #5e7573;
+  color-scheme: dark;
+}
+
+/* ── 近直角：整块界面统一到 2px，圆形元素保留 ───────────────────── */
+.rounded,
+.rounded-sm,
+.rounded-md,
+.rounded-lg,
+.rounded-xl {
+  border-radius: var(--ec-if-radius, 2px) !important;
+}
+/* 只给“壳层/卡面”级别的元素留一点呼吸，避免一刀切后过于锋利 */
+[class*="panel"],
+[class*="Panel"],
+[class*="card"],
+[class*="Card"] {
+  border-radius: var(--ec-if-radius, 2px) !important;
+}
+
+/* ── 去玻璃：模糊底一律取消，改用发丝线分界 ─────────────────────── */
+[class*="backdrop"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* ── 字重与字距：标题走宋体，数字走等宽 ─────────────────────────── */
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* 时间码 / 秒数读起来要像刻度尺上的数字 */
+.timecode,
+.timeline-time,
+[class*="timecode"],
+[class*="Timecode"] {
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* ── 播放头：该文档把播放头写死成靛紫，换成朱红 ───────────────── */
+[class*="tlPlayhead"]:not([class*="Layer"]) {
+  background: var(--ec-if-playhead, #b93b26) !important;
+}
+[class*="tlPlayheadHead"] {
+  border-radius: 2px !important;
+}
+
+/* “已保存”指示点原本取强调色（旧主题下是琥珀），朱红会被误读成录音中，改橄榄绿 */
+[class*="saved_"] [class*="_dot_"] {
+  background: var(--ec-if-idle, #63633a) !important;
+  box-shadow: 0 0 0 3px #63633a22 !important;
+}
+
+/* ── 滚动条：细、无圆头，跟外壳一致 ─────────────────────────────── */
+* {
+  scrollbar-width: thin;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-hi);
+  border-radius: 2px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}

@@ -1,0 +1,84 @@
+/* 一键部署（效果图 docs/界面改版/一键部署/效果图.html 定稿）。提醒色亮紫 var(--ec-indigo) 不随主题；检查窗口始终是深色摄影棚。 */
+.ot-deploy-nav{position:relative;display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px 0 4px;border:0;border-radius:999px;background:var(--ec-indigo);color:#fff;font-weight:650;font-size:13px;white-space:nowrap;cursor:pointer;box-shadow:0 0 0 1px color-mix(in srgb, var(--ec-indigo) 53%, transparent),0 6px 20px color-mix(in srgb, var(--ec-indigo) 33%, transparent)}
+.ot-deploy-nav::after{content:"";position:absolute;inset:-5px;border-radius:999px;border:1.5px solid color-mix(in srgb, var(--ec-indigo) 60%, transparent);animation:ot-deploy-ring 2.4s ease-out infinite;pointer-events:none}
+@keyframes ot-deploy-ring{0%{opacity:.9;transform:scale(.96)}100%{opacity:0;transform:scale(1.12)}}
+.ot-deploy-ring{width:26px;height:26px;flex:none}
+.ot-deploy-nav.is-ready{height:30px;padding:0 12px 0 6px;background:transparent;color:inherit;opacity:.75;font-weight:500;box-shadow:none;border:1px solid color-mix(in srgb,currentColor 18%,transparent)}
+.ot-deploy-nav.is-ready::after{display:none}.ot-deploy-nav.is-ready:hover{opacity:1}
+.ot-deploy-tick{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#3fe0c8;color:#06201a;font-size:11px}
+
+.ot-deploy-strip{display:flex;align-items:center;gap:18px;width:min(var(--home-width,1180px),100%);margin:0 auto 14px;padding:14px 16px 14px 22px;border-radius:18px;border:1px solid color-mix(in srgb, var(--ec-indigo) 33%, transparent);background:color-mix(in srgb,var(--ec-indigo) 9%,transparent);backdrop-filter:blur(18px);animation:ot-deploy-in .55s cubic-bezier(.2,.8,.2,1) both}
+.ot-deploy-strip>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.ot-deploy-strip b{font-size:16px}.ot-deploy-strip span{opacity:.72;font-size:13px}
+@keyframes ot-deploy-in{from{opacity:0;transform:translateY(-8px)}}
+
+.ot-deploy-veil{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:#0009;backdrop-filter:blur(10px);animation:ot-deploy-fade .3s both}
+@keyframes ot-deploy-fade{from{opacity:0}}
+.ot-deploy{width:min(1180px,94vw);height:min(760px,90vh);border-radius:26px;overflow:hidden;display:grid;grid-template-columns:38% 1fr;background:#050a0e;border:1px solid rgba(63,224,200,.22);box-shadow:0 40px 90px #000c;color:#e8f4f2;outline:none;animation:ot-deploy-pop .45s cubic-bezier(.2,.9,.2,1) both;font-size:14px;line-height:1.5}
+@keyframes ot-deploy-pop{from{opacity:0;transform:scale(.97) translateY(10px)}}
+.ot-deploy-left{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:30px;background:radial-gradient(60% 60% at 50% 45%,#0f2f2c 0,#050a0e 70%);perspective:700px}
+.ot-deploy-glow{position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(#3fe0c830,#0000 65%);top:calc(50% - 170px);animation:ot-deploy-breathe 2.6s ease-in-out infinite}
+@keyframes ot-deploy-breathe{50%{transform:scale(1.15);opacity:.6}}
+.ot-deploy-mark{position:relative;width:104px;height:104px;border-radius:26px;background:url(/emotioncut-icon-512.png) center/cover;box-shadow:0 18px 50px #3fe0c840;animation:ot-deploy-flip 2.6s cubic-bezier(.65,0,.35,1) infinite}
+.ot-deploy.is-ready .ot-deploy-mark{animation:none}
+@keyframes ot-deploy-flip{0%{transform:rotateY(0)}45%,50%{transform:rotateY(180deg)}95%,100%{transform:rotateY(360deg)}}
+.ot-deploy-left h2{margin:0;font-size:22px;text-align:center}.ot-deploy-left>p{margin:0;color:#93a9a6aa;text-align:center;max-width:300px}
+.ot-deploy-meter{display:flex;gap:6px}.ot-deploy-meter i{width:26px;height:4px;border-radius:2px;background:#ffffff20;transition:background .4s}.ot-deploy-meter i.ok{background:#3fe0c8}.ot-deploy-meter i.act{background:var(--ec-indigo)}
+.ot-deploy-left .ot-deploy-privacy{margin-top:8px;font-size:12px;line-height:1.7;color:#93a9a6;padding:10px 14px;border-radius:12px;border:1px solid rgba(63,224,200,.08);background:#ffffff06}
+.ot-deploy-go{height:44px;padding:0 26px;border-radius:12px;border:0;background:linear-gradient(180deg,#f7c548,#e0a20f);color:#1d1404;font-weight:700;opacity:0;pointer-events:none;transition:opacity .4s;cursor:pointer}
+.ot-deploy.is-ready .ot-deploy-go{opacity:1;pointer-events:auto}
+.ot-deploy-close{position:absolute;left:18px;top:16px;background:none;border:0;color:#93a9a6;cursor:pointer;font-size:13px}.ot-deploy-close:hover{color:#e8f4f2}
+
+.ot-deploy-list{overflow:auto;padding:26px 28px 30px;background:linear-gradient(180deg,#0a151c,#070f15)}
+.ot-deploy-grp{display:flex;justify-content:space-between;margin:6px 4px 10px;font-size:12px;color:#93a9a6;letter-spacing:.5px}
+/* the list enters once; afterwards each row only changes its symbol and words in place */
+.ot-deploy-item{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:14px;padding:14px 16px;margin-bottom:10px;border-radius:16px;background:linear-gradient(180deg,#0f2029,#0a151c);border:1px solid rgba(63,224,200,.08);box-shadow:inset 0 1px 0 rgba(63,224,200,.13);animation:ot-deploy-row .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i)*40ms);transition:border-color .4s,box-shadow .4s}
+@keyframes ot-deploy-row{from{opacity:0;transform:translateX(24px)}}
+.ot-deploy-st{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:14px;background:#ffffff0e;color:#93a9a6;transition:background .35s,color .35s}
+.ot-deploy-item[data-s=checking] .ot-deploy-st{border:2.5px solid rgba(63,224,200,.3);border-top-color:#3fe0c8;background:none;animation:ot-deploy-spin .9s linear infinite}
+@keyframes ot-deploy-spin{to{transform:rotate(360deg)}}
+.ot-deploy-item[data-s=ok] .ot-deploy-st{background:#3fe0c8;color:#04140f}
+.ot-deploy-item[data-s=warn] .ot-deploy-st{background:#3fe0c833;color:#3fe0c8}
+.ot-deploy-item[data-s=act]{border-color:color-mix(in srgb, var(--ec-indigo) 53%, transparent);box-shadow:inset 0 1px 0 rgba(63,224,200,.13),0 0 0 1px color-mix(in srgb, var(--ec-indigo) 20%, transparent),0 10px 30px color-mix(in srgb, var(--ec-indigo) 13%, transparent)}.ot-deploy-item[data-s=act] .ot-deploy-st{background:var(--ec-indigo);color:#fff}
+.ot-deploy-item b{display:block;font-size:15px}.ot-deploy-item small{display:block;min-height:19px;margin-top:2px;color:#93a9a6;font-size:12.5px}
+.ot-deploy-slot{min-width:1px}
+.ot-deploy-act{height:32px;padding:0 14px;border-radius:10px;border:1px solid rgba(63,224,200,.3);background:#ffffff0c;color:#e8f4f2;font-size:13px;white-space:nowrap;cursor:pointer}
+.ot-deploy-act:disabled{opacity:.6;cursor:default}
+.ot-deploy-item[data-s=act] .ot-deploy-act{border:0;background:var(--ec-indigo);color:#fff;font-weight:700}
+.ot-deploy-tag{font-size:11.5px;color:#93a9a6;padding:2px 9px;border-radius:999px;border:1px solid rgba(63,224,200,.22)}
+.ot-deploy-chips{grid-column:2/4;display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}.ot-deploy-chips span{padding:4px 10px;border-radius:999px;background:#ffffff0a;border:1px solid rgba(63,224,200,.13);font-size:12px;color:#93a9a6;transition:opacity .4s}
+/* 一键安装进度：细条走百分比（数字在按钮上）；失败时只留一条「手动下载」的退路 */
+.ot-deploy-job{grid-column:2/4;display:flex;align-items:center;gap:10px;margin-top:6px}.ot-deploy-job i{flex:1;height:4px;border-radius:999px;background:rgba(63,224,200,.13);overflow:hidden}.ot-deploy-job i b{display:block;height:100%;border-radius:999px;background:var(--ec-indigo);transition:width .45s ease}.ot-deploy-job a{font-size:12px;color:#ffb3c1;text-decoration:underline;text-underline-offset:3px}
+.ot-deploy-chips.is-pending span{opacity:.25}
+.ot-deploy-agents{grid-column:2/4;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.ot-deploy-agent{position:relative;padding:10px 12px;border-radius:12px;background:#ffffff08;border:1px solid rgba(63,224,200,.13);font-size:12.5px;transition:opacity .4s,border-color .4s}
+.ot-deploy-agent.is-on{border-color:#3fe0c855}.ot-deploy-agent.is-off,.ot-deploy-agent.is-pending{opacity:.5}
+.ot-deploy-logo{position:absolute;right:8px;top:8px}.ot-deploy-agent.is-off .ot-deploy-logo,.ot-deploy-agent.is-pending .ot-deploy-logo{filter:grayscale(.7);opacity:.6}
+.ot-deploy-agent b{display:flex;align-items:center;gap:6px;padding-right:30px;font-size:13.5px}.ot-deploy-agent b i{width:7px;height:7px;border-radius:50%;background:#5e7573}
+.ot-deploy-agent.is-on b i{background:#3fe0c8;box-shadow:0 0 8px #3fe0c8}.ot-deploy-agent.is-off b i{background:transparent;border:1px solid #5e7573}
+.ot-deploy-agent small{display:block;min-height:1.45em;margin-top:2px;color:#93a9a6;line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ot-deploy-agent>span:last-child{display:block;margin-top:6px;color:#93a9a6}
+@media (max-width:820px){.ot-deploy{grid-template-columns:1fr;grid-template-rows:auto 1fr}.ot-deploy-left{padding:46px 20px 20px;gap:12px}.ot-deploy-mark{width:64px;height:64px;border-radius:16px}.ot-deploy-agents{grid-template-columns:repeat(2,1fr)}}
+@media (prefers-reduced-motion:reduce){.ot-deploy-nav::after,.ot-deploy-mark,.ot-deploy-glow{animation:none}.ot-deploy,.ot-deploy-item,.ot-deploy-veil,.ot-deploy-strip{animation-duration:.01ms}}
+/* the themes give every header button a material with !important (see usage-badge.css); the reminder keeps its purple */
+html[data-ui-theme] .workspace-global-actions button.ot-deploy-nav{height:32px;min-height:32px;padding:0 14px 0 4px;border:0 !important;border-radius:999px !important;background:var(--ec-indigo) !important;color:#fff !important;box-shadow:0 0 0 1px color-mix(in srgb, var(--ec-indigo) 53%, transparent),0 6px 20px color-mix(in srgb, var(--ec-indigo) 33%, transparent) !important;backdrop-filter:none !important}
+html[data-ui-theme] .workspace-global-actions button.ot-deploy-nav:hover{background:#a67be6 !important}
+html[data-ui-theme] .workspace-global-actions button.ot-deploy-nav.is-ready{height:28px;min-height:28px;padding:0 10px 0 5px;background:transparent !important;border:1px solid transparent !important;box-shadow:none !important;color:var(--ed-muted) !important}
+html[data-ui-theme] .workspace-global-actions button.ot-deploy-nav.is-ready:hover{background:var(--ed-raise) !important;color:var(--ed-ink-2) !important}
+/* the check window is always the dark studio: the themes' shared dialog glass and heading inks do not apply to it */
+html[data-ui-theme] .ot-deploy{background:#050a0e !important;border:1px solid rgba(63,224,200,.22) !important;box-shadow:0 40px 90px #000c !important;backdrop-filter:none !important;color:#e8f4f2 !important}
+html[data-ui-theme] .ot-deploy :is(h2,b){color:#e8f4f2 !important}
+html[data-ui-theme] .ot-deploy :is(small,.ot-deploy-grp){color:#93a9a6 !important}
+/* 10-30 已确认原色 / 暖雾：六个智能体共享接通操作，不改变部署项目顺序。 */
+.ot-deploy{--deploy-win:#1b1c20;--deploy-card:#202227;--deploy-ink:#eef0f4;--deploy-muted:#8e929b;--deploy-line:#ffffff1f;width:min(1360px,94vw);grid-template-columns:33% 1fr;border-radius:16px}
+.ot-deploy-agent-manage{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.ot-deploy-agent-manage button,.ot-deploy-auto-agents button{font:inherit;cursor:pointer;border:1px solid var(--deploy-line);border-radius:8px;background:transparent;color:inherit;min-height:28px;padding:3px 8px;font-size:11.5px}.ot-deploy-agent-manage button:first-child{border-color:transparent;color:var(--deploy-muted)}.ot-deploy-auto-agents{gap:10px;margin-top:10px}.ot-deploy-auto-agents .ot-deploy-agent{display:flex;flex-direction:column;gap:4px;min-height:112px;padding:12px 13px;background:var(--deploy-win);border-color:var(--deploy-line)}.ot-deploy-auto-agents .ot-deploy-agent.is-off{opacity:.65}.ot-deploy-auto-agents .ot-deploy-agent.is-waiting{border-color:var(--ec-indigo);background:linear-gradient(color-mix(in srgb, var(--ec-indigo) 9%, transparent),color-mix(in srgb, var(--ec-indigo) 9%, transparent)),var(--deploy-win)}.ot-deploy-agent-head{display:flex;align-items:center;gap:7px}.ot-deploy-agent-head b{padding:0;font-weight:600;flex:1;white-space:nowrap}.ot-deploy-agent-head>button{padding:0 2px;min-height:24px;border:0;color:var(--deploy-muted);font-size:11px;white-space:nowrap}.ot-deploy-auto-agents .connection-quick-actions{margin-top:auto;font-size:11.5px;color:var(--deploy-muted)}.ot-deploy-auto-agents .connection-quick-buttons{gap:6px}.ot-deploy-auto-agents .connection-quick-buttons>a{min-height:28px;padding:3px 8px;border-color:var(--deploy-line)}.ot-deploy-auto-agents .connection-quick-buttons>button{margin-left:auto}.ot-deploy-auto-agents .connection-wait-copy{font-size:11px}.ot-deploy :is(button,a):focus-visible{outline:2px solid var(--ec-indigo);outline-offset:3px}.ot-deploy-agent-manage button:disabled{opacity:.5;cursor:wait}
+html[data-ui-theme=warm] .ot-deploy{--deploy-win:#f8f0e2;--deploy-card:#fbf5ea;--deploy-ink:#302a24;--deploy-muted:#62584d;--deploy-line:#5a46302e;background:var(--deploy-win)!important;color:var(--deploy-ink)!important;border-color:var(--deploy-line)!important;box-shadow:0 30px 70px #49372240!important}
+html[data-ui-theme=warm] .ot-deploy-left{background:radial-gradient(60% 60% at 50% 45%,#e9a51615,transparent),#efe4d0}html[data-ui-theme=warm] .ot-deploy-list{background:#f8f0e2}html[data-ui-theme=warm] .ot-deploy-item{background:var(--deploy-card);border-color:var(--deploy-line);box-shadow:none}html[data-ui-theme=warm] .ot-deploy :is(h2,b){color:var(--deploy-ink)!important}html[data-ui-theme=warm] .ot-deploy :is(small,.ot-deploy-grp),html[data-ui-theme=warm] .ot-deploy-left>p{color:var(--deploy-muted)!important}html[data-ui-theme=warm] .ot-deploy-close{color:var(--deploy-muted)}html[data-ui-theme=warm] .ot-deploy-privacy{border-color:var(--deploy-line);background:#fffaf0}html[data-ui-theme=warm] .ot-deploy-act{color:var(--deploy-ink);border-color:var(--deploy-line)}html[data-ui-theme=warm] .ot-deploy-chips span{color:var(--deploy-muted);background:#efe4d0;border-color:var(--deploy-line)}html[data-ui-theme=warm] .ot-deploy-meter i{background:#5a463025}html[data-ui-theme=warm] .ot-deploy-meter i.ok{background:#1f9e6c}html[data-ui-theme=warm] .ot-deploy-meter i.act{background:var(--ec-indigo)}html[data-ui-theme=warm] .ot-deploy .connection-ok{color:#1f9e6c}
+html[data-ui-theme] .ot-deploy-item[data-s=warn] .ot-deploy-st{background:color-mix(in srgb, var(--ec-indigo) 13%, transparent);color:var(--ec-indigo)}
+html[data-ui-theme=warm] .ot-deploy-job i{background:#5a463025}html[data-ui-theme=warm] .ot-deploy-job a{color:#b4234a}
+@media(max-width:1100px){.ot-deploy-auto-agents{grid-template-columns:repeat(2,minmax(0,1fr))}.ot-deploy-item:has(.ot-deploy-auto-agents)>.ot-deploy-slot{grid-column:2/4}}
+@media(max-width:820px){.ot-deploy{grid-template-columns:1fr}}
+
+.ot-deploy-connection-error{grid-column:2/4;color:var(--ec-indigo);font-size:12px;margin:4px 0}
+
+/* 任务24：未安装的智能体保持可发现，默认收起。 */
+.ot-deploy-agent-more{grid-column:2/4;min-width:0;margin-top:8px}.ot-deploy-agent-more>summary{cursor:pointer;color:var(--deploy-muted);font-size:12px;padding:6px 0}.ot-deploy-agent-more>summary:focus-visible{outline:2px solid var(--ec-indigo);outline-offset:3px}

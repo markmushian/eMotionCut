@@ -1,0 +1,85 @@
+const path = require('node:path');
+const os = require('node:os');
+const childProcess = require('node:child_process');
+const {spawnSync} = childProcess;
+const fs = require('node:fs');
+function environmentPath(env=process.env,platform=process.platform){
+ const key=platform==='win32'?Object.keys(env).find(name=>/^path$/i.test(name)):'PATH';
+ return env.PATH??(key?env[key]:undefined)??'';
+}
+function environmentWithPath(env,value,platform=process.platform){
+ const result={...env};
+ // Node forwards only one case-insensitive Windows environment key to children.
+ if(platform==='win32')for(const key of Object.keys(result))if(/^path$/i.test(key))delete result[key];
+ result.PATH=value;return result;
+}
+function appDataRoot(platform=process.platform, env=process.env, home=os.homedir()) {
+ const p=platform==='win32'?path.win32:path.posix;
+ return platform==='win32' ? env.APPDATA||p.join(home,'AppData','Roaming') : platform==='darwin'?p.join(home,'Library','Application Support'):env.XDG_CONFIG_HOME||p.join(home,'.config');
+}
+function standardDataRoot(){return process.env.EMOTIONCUT_USER_DATA||path.join(appDataRoot(),'eMotionCut');}
+function projectsRoot(){return path.join(os.homedir(),process.platform==='win32'?'Videos':'Movies','LinkReader Projects');}
+function termination(pid, signal='SIGTERM', platform=process.platform){
+ if(!Number.isSafeInteger(pid)||pid<=0||pid===process.pid)throw Error('无效的子进程 ID');
+ return platform==='win32'?{command:'taskkill.exe',args:['/PID',String(pid),'/T','/F']}:{pid:-pid,signal};
+}
+// Call only for workers owned by this runtime. Never terminate by executable name.
+function killTree(pid,signal='SIGTERM'){
+ const action=termination(pid,signal);
+ try{if(action.command)spawnSync(action.command,action.args,{windowsHide:true,stdio:'ignore',timeout:5000});else process.kill(action.pid,action.signal);}catch{/* already gone */}
+}
+// A folder is opened; a file is opened with its folder shown and the file selected. `/select,` on a folder would
+// land the person one level up, looking at the folder instead of inside it — the button says 打开文件夹, not 定位到.
+function revealCommand(target,platform=process.platform,env=process.env,isDirectory=false){
+ const p=platform==='win32'?path.win32:path.posix;
+ if(!p.isAbsolute(target)||target.includes('\0'))throw Error('文件路径必须是绝对路径');
+ if(platform==='win32'){
+  const systemRoot=env[Object.keys(env).find(key=>/^systemroot$/i.test(key))]||env[Object.keys(env).find(key=>/^windir$/i.test(key))];
+  if(typeof systemRoot!=='string'||!p.isAbsolute(systemRoot)||systemRoot.includes('\0'))throw Error('Windows 系统目录无效，无法打开文件夹');
+  return {command:p.join(systemRoot,'explorer.exe'),args:isDirectory?[target]:['/select,',target]};
+ }
+ if(platform==='darwin')return {command:'/usr/bin/open',args:isDirectory?[target]:['-R',target]};
+ return {command:'xdg-open',args:[isDirectory?target:p.dirname(target)]};
+}
+async function revealPath(target,platform=process.platform){
+ const isDirectory=fs.statSync(target).isDirectory();
+ const command=revealCommand(target,platform,process.env,isDirectory);
+ // This is a user-requested file manager window. Hiding Explorer can silently
+ // hide directory reveals even when the shell accepts the request.
+ const child=childProcess.spawn(command.command,command.args,{detached:true,stdio:'ignore',windowsHide:false});
+ await new Promise((resolve,reject)=>{
+  child.once('error',reject);
+  // Explorer hands the request to the desktop shell and can then exit with 1,
+  // even after opening and selecting the requested item successfully.
+  if(platform==='win32')child.once('spawn',resolve);
+  else child.once('close',(code,signal)=>code===0?resolve():reject(Error(`文件管理器启动失败（${signal||code}）`)));
+ });
+ child.unref();
+}
+function buildTarget(platform=process.platform,arch=process.arch,release=os.release()){
+ if(platform==='darwin'){if(!['arm64','x64'].includes(arch))throw Error('macOS 仅支持 Apple 芯片 arm64 或 Intel x64');return 'mac';}
+ if(platform!=='win32'||arch!=='x64')throw Error('仅支持 macOS 和 Windows 10/11 x64 本机构建');
+ const [major,,build]=release.split('.').map(Number);
+ if(major!==0&&major!==10||!Number.isInteger(build)||build<19041)throw Error('需要 Windows 10 2004 或 Windows 11');
+ return build>=22000?'win11':'win10';
+}
+// sysctl.proc_translated is 1 only when an Intel process runs under Rosetta.
+function macTranslated(run=spawnSync){
+ const result=run('/usr/sbin/sysctl',['-in','sysctl.proc_translated'],{encoding:'utf8'});
+ if(result.error)throw Error('无法检查 Mac 芯片，请确认系统工具可用。');
+ return result.status===0 && String(result.stdout).trim()==='1';
+}
+function validateMacArch(arch,translated=false){
+ if(!['arm64','x64'].includes(arch))throw Error('macOS 仅支持 Apple 芯片 arm64 或 Intel x64。');
+ if(translated)throw Error('请使用 Apple 芯片 Mac 的原生终端与 arm64 Node，不要在 Rosetta 下运行。');
+ return arch;
+}
+function macBuildArch({arch=process.arch,env=process.env,translated=macTranslated()}={}){
+ validateMacArch(arch,translated);
+ const target=env.EMOTIONCUT_MAC_BUILD_ARCH || arch;
+ validateMacArch(target);
+ if(target!==arch && !(arch==='arm64' && target==='x64'))throw Error('仅允许 Apple 芯片 Mac 显式交叉构建 Intel x64。');
+ return target;
+}
+function macAppDirectory(arch){validateMacArch(arch);return arch==='arm64'?'mac-arm64':'mac';}
+module.exports={macTranslated,validateMacArch,macBuildArch,macAppDirectory,environmentPath,environmentWithPath,appDataRoot,standardDataRoot,projectsRoot,termination,killTree,revealCommand,revealPath,buildTarget};

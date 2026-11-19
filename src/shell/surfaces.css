@@ -1,0 +1,774 @@
+/* Surfaces the old build drew in glass: dialogs, menus, inputs, the settings window.
+   They all read their colours from a handful of variables, so re-pointing those variables
+   brings them onto paper without touching their markup. */
+
+html[data-ec-shell] {
+  /* Tailwind / shadcn tokens, converted from the paper palette. */
+  --background: 41 31% 86%;
+  --foreground: 38 21% 8%;
+  --card: 41 46% 92%;
+  --card-foreground: 38 21% 8%;
+  --popover: 41 50% 95%;
+  --popover-foreground: 38 21% 8%;
+  --primary: 38 21% 8%;
+  --primary-foreground: 41 50% 95%;
+  --secondary: 40 25% 82%;
+  --secondary-foreground: 38 21% 8%;
+  --muted: 40 25% 82%;
+  --muted-foreground: 38 14% 36%;
+  --accent: 40 25% 82%;
+  --accent-foreground: 38 21% 8%;
+  --destructive: 9 66% 44%;
+  --destructive-foreground: 41 50% 95%;
+  --border: 40 25% 74%;
+  --input: 40 25% 74%;
+  --ring: 9 66% 44%;
+  --radius: 2px;
+
+  /* The 1.x glass surface tokens, re-pointed. */
+  --ui-font: var(--ec-sans);
+  --ui-ink: var(--ec-ink);
+  --ui-muted: var(--ec-ink-3);
+  --ui-mint: var(--ec-vermilion);
+  --ui-line: var(--ec-rule);
+  --ui-glass: var(--ec-paper-2);
+  --ui-field: var(--ec-paper-3);
+  --ui-accent: var(--ec-vermilion);
+}
+
+html[data-ec-shell][data-ec-mode="night"] {
+  /* Same palette as tokens.css: near-black teal field, mint as the only primary. */
+  --background: 207 47% 4%;
+  --foreground: 170 35% 93%;
+  --card: 203 47% 8%;
+  --card-foreground: 170 35% 93%;
+  --popover: 203 45% 9%;
+  --popover-foreground: 170 35% 93%;
+  --primary: 171 72% 56%;
+  --primary-foreground: 168 67% 5%;
+  --secondary: 203 45% 11%;
+  --secondary-foreground: 170 35% 93%;
+  --muted: 203 45% 11%;
+  --muted-foreground: 172 11% 62%;
+  --accent: 203 45% 13%;
+  --accent-foreground: 170 35% 93%;
+  --destructive: 350 89% 60%;
+  --destructive-foreground: 350 100% 92%;
+  --border: 194 36% 14%;
+  --input: 196 30% 12%;
+  --ring: 171 72% 56%;
+  --radius: 13px;
+
+  --ui-ink: var(--ec-ink);
+  --ui-muted: var(--ec-ink-3);
+  --ui-line: var(--ec-rule);
+  --ui-glass: var(--ec-panel);
+  --ui-field: rgba(4, 10, 14, .6);
+}
+
+/* ── overlays ──────────────────────────────────────────────────────────── */
+
+html[data-ec-shell] :is([role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]) {
+  border-radius: var(--ec-radius);
+  border-color: var(--ec-rule-2);
+  box-shadow: 0 30px 70px -34px color-mix(in srgb, var(--ec-ink) 60%, transparent);
+}
+
+html[data-ec-shell] [data-radix-popper-content-wrapper] > div {
+  border-radius: var(--ec-radius);
+  border: 1px solid var(--ec-rule-2);
+  background: var(--ec-paper-3);
+  color: var(--ec-ink);
+  box-shadow: 0 22px 50px -28px color-mix(in srgb, var(--ec-ink) 55%, transparent);
+}
+
+html[data-ec-shell] :is(input:not([type=range]):not([type=color]):not([type=checkbox]), textarea, select) {
+  border-radius: 1px;
+  border-color: var(--ec-rule-2);
+  background: var(--ec-paper-3);
+  color: var(--ec-ink);
+  font-family: var(--ec-sans);
+}
+
+html[data-ec-shell] :is(input, textarea)::placeholder {
+  color: var(--ec-ink-4);
+}
+
+html[data-ec-shell] :is(input[type=range], input[type=checkbox], progress) {
+  accent-color: var(--ec-vermilion);
+}
+
+html[data-ec-shell] :where(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--ec-vermilion);
+  outline-offset: 2px;
+}
+
+html[data-ec-shell] :where(option) {
+  background: var(--ec-paper-3);
+  color: var(--ec-ink);
+}
+
+/* ── the settings window ───────────────────────────────────────────────── */
+
+html[data-ec-shell] .system-settings {
+  width: min(1140px, calc(100vw - 72px));
+  height: min(850px, 92dvh);
+  padding: 0;
+  gap: 0;
+  background: var(--ec-paper);
+  color: var(--ec-ink);
+  border: 1px solid var(--ec-rule-2);
+  border-radius: 0;
+  box-shadow: 0 50px 110px -50px color-mix(in srgb, var(--ec-ink) 70%, transparent);
+  overflow: hidden;
+}
+
+html[data-ec-shell] .system-settings > header {
+  height: 54px;
+  padding: 0 20px 0 24px;
+  border-bottom: 1px solid var(--ec-rule);
+  background: var(--ec-paper-2);
+  gap: 14px;
+}
+
+html[data-ec-shell] .system-settings > header > div {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+
+html[data-ec-shell] .system-settings > header h2 {
+  font-family: var(--ec-serif);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  margin: 0;
+}
+
+html[data-ec-shell] .system-settings > header p {
+  font-family: var(--ec-mono);
+  font-size: 9.5px;
+  letter-spacing: .14em;
+  color: var(--ec-ink-4);
+  margin: 0;
+}
+
+html[data-ec-shell] .system-settings > header button {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--ec-rule);
+  border-radius: 1px;
+  background: transparent;
+  color: var(--ec-ink-2);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+html[data-ec-shell] .system-settings > header button:hover {
+  border-color: var(--ec-rule-3);
+  background: var(--ec-paper-3);
+  color: var(--ec-ink);
+}
+
+html[data-ec-shell] .system-settings-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+html[data-ec-shell] .system-settings nav {
+  width: 194px;
+  flex-shrink: 0;
+  padding: 12px 10px 24px;
+  border-right: 1px solid var(--ec-rule);
+  background: var(--ec-paper-2);
+  overflow: auto;
+}
+
+html[data-ec-shell] .system-settings nav .settings-nav-heading {
+  display: block;
+  padding: 14px 10px 5px;
+  font-family: var(--ec-mono);
+  font-size: 9px;
+  letter-spacing: .16em;
+  color: var(--ec-ink-4);
+}
+
+html[data-ec-shell] .system-settings nav button {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ec-ink-2);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+html[data-ec-shell] .system-settings nav button + button {
+  margin-left: 0;
+}
+
+html[data-ec-shell] .system-settings nav button:hover {
+  background: var(--ec-paper-3);
+  color: var(--ec-ink);
+}
+
+html[data-ec-shell] .system-settings nav button[aria-current="page"] {
+  background: var(--ec-paper-3);
+  border-left-color: var(--ec-vermilion);
+  color: var(--ec-ink);
+  font-weight: 600;
+}
+
+html[data-ec-shell] .system-settings nav button.settings-nav-sub {
+  padding-left: 20px;
+  font-size: 12px;
+}
+
+html[data-ec-shell] .system-settings main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 28px 34px 40px;
+  background: var(--ec-paper);
+}
+
+html[data-ec-shell] .system-settings h2 {
+  font-family: var(--ec-serif);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  margin: 0 0 14px;
+}
+
+html[data-ec-shell] .system-settings h3,
+html[data-ec-shell] .system-settings legend {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: .02em;
+  margin: 0 0 8px;
+}
+
+html[data-ec-shell] .system-settings p {
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--ec-ink-3);
+  margin: 8px 0;
+}
+
+html[data-ec-shell] .system-settings section,
+html[data-ec-shell] .system-settings fieldset {
+  margin: 0 0 24px;
+  padding: 0 0 22px;
+  border: 0;
+  border-bottom: 1px solid var(--ec-rule);
+}
+
+html[data-ec-shell] .system-settings button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--ec-rule-2);
+  border-radius: 1px;
+  background: var(--ec-paper-3);
+  color: var(--ec-ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+html[data-ec-shell] .system-settings button:hover:not(:disabled) {
+  border-color: var(--ec-rule-3);
+  background: var(--ec-paper-2);
+}
+
+html[data-ec-shell] .system-settings button:disabled {
+  opacity: .4;
+  cursor: default;
+}
+
+html[data-ec-shell] .system-settings label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  font-size: 12.5px;
+  margin: 12px 0;
+}
+
+html[data-ec-shell] .system-settings input,
+html[data-ec-shell] .system-settings select {
+  padding: 6px 8px;
+  border: 1px solid var(--ec-rule-2);
+  border-radius: 1px;
+  background: var(--ec-paper-3);
+  color: var(--ec-ink);
+  font-size: 12.5px;
+}
+
+html[data-ec-shell] .system-settings input[type=number] {
+  width: 92px;
+}
+
+html[data-ec-shell] .system-settings .settings-check {
+  justify-content: flex-start;
+}
+
+html[data-ec-shell] .settings-inline input {
+  font-size: 12px;
+}
+
+html[data-ec-shell] .system-settings small {
+  font-size: 11px;
+  color: var(--ec-ink-4);
+}
+
+html[data-ec-shell] .system-settings .settings-primary {
+  background: var(--ec-ink);
+  border-color: var(--ec-ink);
+  color: var(--ec-paper-3);
+}
+
+html[data-ec-shell] .system-settings .settings-primary:hover:not(:disabled) {
+  background: var(--ec-vermilion);
+  border-color: var(--ec-vermilion);
+  color: #fdf8ec;
+}
+
+html[data-ec-shell] .system-settings .settings-error {
+  color: var(--ec-vermilion);
+}
+
+html[data-ec-shell] .system-settings > footer {
+  height: 54px;
+  padding: 0 20px 0 24px;
+  border-top: 1px solid var(--ec-rule);
+  background: var(--ec-paper-2);
+  font-size: 11.5px;
+}
+
+html[data-ec-shell] .system-settings > footer > span {
+  color: var(--ec-ink-4);
+}
+
+html[data-ec-shell] .settings-backup,
+html[data-ec-shell] .settings-location {
+  font-size: 12.5px;
+}
+
+html[data-ec-shell] .settings-confirm-modal {
+  background: var(--ec-paper-2);
+  color: var(--ec-ink);
+  border: 1px solid var(--ec-rule-2);
+  border-radius: 0;
+}
+
+html[data-ec-shell] .settings-confirm-modal button {
+  border: 1px solid var(--ec-rule-2);
+  border-radius: 1px;
+  background: var(--ec-paper-3);
+  color: var(--ec-ink);
+  padding: 8px 13px;
+}
+
+/* ── sonner ────────────────────────────────────────────────────────────── */
+
+html[data-ec-shell] [data-sonner-toast] {
+  border-radius: var(--ec-radius);
+  font-family: var(--ec-sans);
+}
+
+/* ── 通用剪辑 (the entrance, the intake step, the work page) ────────────── */
+
+html[data-ec-shell] .ge {
+  --ge-bg: var(--ec-paper);
+  --ge-panel: var(--ec-paper-2);
+  --ge-raise: var(--ec-paper-3);
+  --ge-field: var(--ec-paper-3);
+  --ge-line: var(--ec-rule);
+  --ge-line2: var(--ec-rule-2);
+  --ge-ink: var(--ec-ink);
+  --ge-ink2: var(--ec-ink-2);
+  --ge-muted: var(--ec-ink-3);
+  --ge-faint: var(--ec-ink-4);
+  --ge-chip: var(--ec-paper-3);
+  --ge-chip-on: var(--ec-sink);
+  --ge-hover: var(--ec-sink);
+  --ge-media: #03080c;
+  --ge-teal: var(--ec-vermilion);
+  --ge-teal-ink: #fdf8ec;
+  --ge-dot: var(--ec-vermilion);
+  --ge-red: var(--ec-vermilion);
+  --ge-stop-bg: var(--ec-ink);
+  --ge-stop-ink: var(--ec-paper-3);
+  --ge-shadow: 0 24px 60px -34px color-mix(in srgb, var(--ec-ink) 60%, transparent);
+  --ge-popup: var(--ec-paper-3);
+  --ge-seg-on: var(--ec-sink);
+  --ge-panel-border: 1px solid var(--ec-rule);
+  --ge-panel-radius: 0;
+  --ge-panel-shadow: none;
+  --ge-panel-glass: none;
+  --ge-gap: 0px;
+  --ge-inset: 0px;
+  font-family: var(--ec-sans);
+  color: var(--ec-ink);
+  background: var(--ec-paper);
+}
+
+html[data-ec-shell] .ge .ge-mark {
+  border-radius: 1px;
+  border-color: var(--ec-rule-2);
+  background: var(--ec-paper-3);
+}
+
+html[data-ec-shell] .ge :focus-visible {
+  outline: 2px solid var(--ec-vermilion);
+}
+
+html[data-ec-shell] .ge :is(.ge-btn, .ge-primary, .ge-go, .ge-addbtn) {
+  border-radius: 1px;
+}
+
+html[data-ec-shell] .ge :is(textarea, input) {
+  border-radius: 1px;
+}
+
+html[data-ec-shell] .ge :is(.ge-box, .ge-area, .ge-drop) {
+  border-radius: 1px;
+}
+
+/* 聊天气泡、画框、缩略图、模型胶囊：旧版全是 12px 起的大圆角，收回直角 */
+html[data-ec-shell] .ge :is(.ge-frame, .ge-you, .ge-me, .ge-tag, .ge-model-group, .th, .ge-thumb) {
+  border-radius: 2px;
+}
+
+html[data-ec-shell] .ge .ge-send {
+  border-radius: 2px;
+}
+
+/* 墨夜下气泡与底面板几乎同色，抬一档底色，让对话有层次 */
+html[data-ec-shell][data-ec-mode="night"] .ge :is(.ge-you, .ge-me) {
+  background: var(--ec-paper-3);
+  border-color: var(--ec-rule-2);
+}
+
+html[data-ec-shell] .ge-panel,
+html[data-ec-shell] .ge-editor,
+html[data-ec-shell] .ge-edit-surface {
+  border-radius: 0;
+  border-color: var(--ec-rule);
+  backdrop-filter: none;
+}
+
+/* 需要注意的状态: the old build used violet. One accent only — vermilion, on paper. */
+html[data-ec-shell] .ge-failover {
+  border: 1px solid var(--ec-vermilion);
+  background: var(--ec-vermilion-soft);
+  border-radius: 2px;
+}
+
+html[data-ec-shell] .ge-failover > b {
+  color: var(--ec-vermilion);
+}
+
+html[data-ec-shell] .ge-failover-button,
+html[data-ec-shell] .ge-failover-actions button {
+  border-radius: 1px;
+  border-color: var(--ec-vermilion);
+  background: transparent;
+  color: var(--ec-vermilion);
+}
+
+html[data-ec-shell] .ge-failover-button:hover,
+html[data-ec-shell] .ge-failover-actions button:hover {
+  background: var(--ec-vermilion);
+  color: #fdf8ec;
+}
+
+/* The work page's composer sits on paper, not on a floating card. */
+html[data-ec-shell] .ge-ask,
+html[data-ec-shell] .ge-composer {
+  border-radius: 1px;
+  border-color: var(--ec-rule);
+  background: var(--ec-paper-2);
+}
+
+html[data-ec-shell] .ge :is(.ge-chip, .ge-chips button, .ge-segc button) {
+  border-radius: 1px;
+}
+
+/* ── 风格库 ────────────────────────────────────────────────────────────── */
+
+html[data-ec-shell] .style-library {
+  --sl-ink: var(--ec-ink);
+  --sl-ink-2: var(--ec-ink-2);
+  --sl-muted: var(--ec-ink-3);
+  --sl-faint: var(--ec-ink-4);
+  --sl-line: var(--ec-rule);
+  --sl-field: var(--ec-paper-3);
+  --sl-chip-on: var(--ec-sink);
+  --sl-chip-hover: var(--ec-paper-2);
+  --sl-surface: var(--ec-paper-2);
+  --sl-surface-line: var(--ec-rule);
+  --sl-surface-shadow: none;
+  --sl-media: #03080c;
+  --sl-shade: #00000038;
+  --sl-focus: var(--ec-vermilion);
+  --sl-general: var(--ec-vermilion);
+  --sl-general-ink: #fdf8ec;
+  --sl-dot: var(--ec-vermilion);
+  --sl-radius: var(--ec-radius);
+}
+
+html[data-ec-shell] .style-library .sl-card,
+html[data-ec-shell] .style-library .sl-thumb,
+html[data-ec-shell] .style-library .sl-pickbar {
+  border-radius: var(--ec-radius);
+}
+
+html[data-ec-shell] .style-library :is(.sl-search input, .sl-search, .sl-filters button, .sl-bar button) {
+  border-radius: calc(var(--ec-radius) - 2px);
+}
+
+html[data-ec-shell] .styles-page {
+  background: var(--ec-paper);
+}
+
+/* Headings inside the older pages still read like the 1.x product; give them the serif voice. */
+html[data-ec-shell] .style-library :is(h1, h2),
+html[data-ec-shell] .styles-page :is(h1, h2),
+html[data-ec-shell] .ge :is(h1, h2) {
+  font-family: var(--ec-serif);
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+/* ── 录屏工作台 ────────────────────────────────────────────────────────── */
+
+html[data-ec-shell] .openscreen-workspace-shell {
+  width: 100%;
+  height: calc(100dvh - var(--ec-ruler));
+  background: var(--ec-paper);
+  color: var(--ec-ink);
+}
+
+html[data-ec-shell] .openscreen-hostbar {
+  height: 42px;
+  flex-basis: 42px;
+  padding: 0 14px;
+  background: var(--ec-paper-2);
+  border-bottom: 1px solid var(--ec-rule);
+  color: var(--ec-ink);
+}
+
+html[data-ec-shell] .openscreen-hostbar strong {
+  font-family: var(--ec-serif);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+html[data-ec-shell] .openscreen-hostbar :is(button, a) {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--ec-rule-2);
+  border-radius: 1px;
+  background: var(--ec-paper-3);
+  color: var(--ec-ink-2);
+  font-size: 11.5px;
+}
+
+html[data-ec-shell] .openscreen-hostbar :is(button, a):hover {
+  border-color: var(--ec-rule-3);
+  color: var(--ec-ink);
+}
+
+html[data-ec-shell] .openscreen-microfrontend {
+  background: var(--ec-paper);
+}
+
+/* ── 通用剪辑台 (studio.css 的 FCP 深灰家族) ─────────────────────────────
+   studio.css 把这一族写在 :root 上，是给旧版深色剪辑界面用的。这里整族改指到
+   排版台色板上，两套模式自动跟随；只有舞台/媒体底保持暗色，因为它承载画面。 */
+
+html[data-ec-shell][data-ec-mode] {
+  --studio-bg: var(--ec-paper);
+  --studio-panel: var(--ec-paper-2);
+  --studio-panel-2: var(--ec-paper-3);
+  --studio-panel-3: var(--ec-sink);
+  --studio-soft: var(--ec-paper-3);
+  --studio-stage: #0f0d09;
+  --studio-input-bg: var(--ec-paper-3);
+  --studio-line: var(--ec-rule);
+  --studio-control-line: var(--ec-rule-2);
+  --studio-ink: var(--ec-ink);
+  --studio-muted: var(--ec-ink-3);
+  --studio-accent: var(--ec-vermilion);
+  --studio-playhead: var(--ec-vermilion);
+  --studio-selection: var(--ec-ochre);
+  --studio-danger: var(--ec-vermilion);
+  --studio-ok: var(--ec-olive);
+  --studio-role-overlay: #6c5b74;
+  --studio-role-subtitle: var(--ec-indigo);
+  --studio-role-video: var(--ec-indigo);
+  --studio-role-voice: var(--ec-olive);
+  --studio-role-music: var(--ec-ochre);
+}
+
+/* 主题细化表 (editor-tokens.css) 是按旧主题名分组的，这里按模式重写一遍，
+   让菜单/抽屉/卡片的高度、圆角、阴影都落回排版台语言。 */
+
+html[data-ec-shell][data-ec-mode] {
+  --ed-control: 28px;
+  --ed-control-sm: 22px;
+  --ed-accent: var(--ec-vermilion);
+  --ed-accent-hi: var(--ec-vermilion-hi);
+  --ed-accent-ink: #fdf8ec;
+  --ed-accent-soft: var(--ec-vermilion-soft);
+  --ed-accent-text: var(--ec-vermilion);
+  --ed-danger: var(--ec-vermilion);
+  --ed-card-s: var(--ec-paper-3);
+  --ed-card-m: var(--ec-rule);
+  --ed-card-f: var(--ec-rule-3);
+  --ed-card-ink: var(--ec-ink);
+  --ed-icon: var(--ec-vermilion);
+  --ed-ink: var(--ec-ink);
+  --ed-ink-2: var(--ec-ink-2);
+  --ed-muted: var(--ec-ink-3);
+  --ed-faint: var(--ec-ink-4);
+  --ed-raise: var(--ec-paper-3);
+  --ed-raise-hi: var(--ec-paper-2);
+  --ed-line: var(--ec-rule);
+  --ed-line-2: var(--ec-rule-2);
+  --ed-input: var(--ec-paper-3);
+  --ed-menu-bg: var(--ec-paper-3);
+  --ed-hint-bg: var(--ec-paper-2);
+  --ed-slot: var(--ec-paper-2);
+  --ed-slot-hover: var(--ec-sink);
+  --ed-slot-rim: var(--ec-rule);
+  --ed-head-hover: var(--ec-sink);
+  --ed-clip-rim: var(--ec-rule-2);
+  --ed-grip: var(--ec-rule-2);
+  --ed-fader: var(--ec-rule-2);
+  --ed-tick: var(--ec-rule-2);
+  --ed-playhead-halo: transparent;
+  --ed-shadow-sm: none;
+  --ed-shadow-md: 0 10px 30px -22px color-mix(in srgb, var(--ec-ink) 70%, transparent);
+  --ed-shadow-lg: 0 24px 60px -34px color-mix(in srgb, var(--ec-ink) 70%, transparent);
+}
+
+
+/* ── Pro 样片页与风格试看弹窗 ───────────────────────────────────────────
+   旧版用一层灰渐变铺底、琥珀色主按钮。这里落回纸面 + 朱红，边框一律发丝线。 */
+
+html[data-ec-shell] .home-soon,
+html[data-ec-shell] .standard-pro-page {
+  background: var(--ec-paper);
+  background-image: none;
+  color: var(--ec-ink);
+}
+
+html[data-ec-shell] .standard-pro-intro {
+  gap: 32px;
+  padding: 24px;
+  border: 1px solid var(--ec-rule);
+  border-radius: 0;
+  background: var(--ec-paper-2);
+}
+
+html[data-ec-shell] .standard-pro-media {
+  border: 1px solid var(--ec-rule);
+  border-radius: 0;
+  background: #0f0d09;
+}
+
+html[data-ec-shell] .standard-pro-title h1 {
+  font-family: var(--ec-serif);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+html[data-ec-shell] .standard-pro-actions button.home-entry__button {
+  height: 34px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 1px;
+  background: var(--ec-vermilion) !important;
+  color: #fdf8ec !important;
+  font-size: 13px;
+}
+
+html[data-ec-shell] .standard-pro-badge,
+html[data-ec-shell] .standard-pro-title > .standard-pro-badge,
+html[data-ec-shell] .standard-pro-page .standard-pro-title > .standard-pro-badge {
+  border: 1px solid currentColor !important;
+  border-radius: 1px;
+  background: transparent !important;
+  color: var(--ec-vermilion) !important;
+  line-height: 1.5;
+}
+
+html[data-ec-shell] .standard-pro-actions a,
+html[data-ec-shell] .standard-pro-actions > button[type="button"]:not(.home-entry__button) {
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--ec-rule-2);
+  color: var(--ec-ink-2);
+  text-decoration: none;
+  background: none;
+}
+
+/* ── 关于与更新（/about 把设置卡片当整页用，去掉浮动卡片） ─────────────── */
+
+html[data-ec-shell] .workspace-content > .system-settings {
+  width: 100%;
+  height: auto;
+  min-height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+html[data-ec-shell] .workspace-content > .system-settings main {
+  background: transparent;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 44px clamp(20px, 5vw, 72px) 72px;
+}
+
+html[data-ec-shell] .system-settings h2 {
+  font-family: var(--ec-serif);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+html[data-ec-shell] .system-settings :is(button, input, select, [role="dialog"]) {
+  border-radius: 1px;
+}
+
+html[data-ec-shell] .system-settings .settings-error {
+  color: var(--ec-vermilion);
+}
+
+html[data-ec-shell] .system-settings nav button[aria-current] {
+  background: var(--ec-sink);
+  box-shadow: inset 2px 0 0 var(--ec-vermilion);
+}
+
+/* 墨夜下弹窗与页底同色，抬一档底色并留发丝描边，才有“浮在纸上”的层次 */
+html[data-ec-shell][data-ec-mode="night"] [role="dialog"].system-settings,
+html[data-ec-shell][data-ec-mode="night"] .system-settings[role="dialog"] {
+  border: 1px solid var(--ec-rule-2);
+  background: var(--ec-paper-2);
+}

@@ -1,0 +1,20 @@
+/* 新用户第一次打开：只指一次右上角「一键部署」。浮层自带配色，日间/终端都通用。 */
+.frg{position:fixed;inset:0;z-index:1200;pointer-events:none}
+.frg__spot{position:fixed;z-index:1201;border-radius:999px;border:1.5px solid #8bf3dd;box-shadow:0 0 0 9999px rgba(3,10,14,.68),0 0 26px rgba(63,224,200,.55);pointer-events:none;animation:frg-pulse 1.8s ease-in-out infinite}
+.frg__tip{position:fixed;z-index:1202;width:min(380px,calc(100vw - 40px));padding:20px 22px 18px;border:1px solid rgba(63,224,200,.32);border-radius:16px;background:linear-gradient(160deg,#0d1c23,#071016 72%);box-shadow:0 26px 70px rgba(0,0,0,.55);color:#e8f4f2;pointer-events:auto;animation:frg-in .4s cubic-bezier(.2,.8,.2,1) both}
+.frg__eyebrow{display:inline-flex;align-items:center;gap:8px;font:600 10px/1 ui-monospace,"Cascadia Mono",monospace;letter-spacing:.16em;color:#8bf3dd}
+.frg__eyebrow::before{content:"";width:18px;height:1px;background:linear-gradient(90deg,#3fe0c8,#a6ee7c)}
+.frg__tip h2{margin:12px 0 8px;font-size:19px;line-height:1.35;letter-spacing:-.02em;font-weight:700}
+.frg__tip p{margin:0;font-size:12.5px;line-height:1.75;color:#a7c2bd}
+.frg__ops{display:flex;align-items:center;gap:10px;margin-top:18px}
+.frg__ops button{height:34px;padding:0 14px;border-radius:9px;font:600 12px/1 inherit;cursor:pointer;transition:filter .15s,border-color .15s,color .15s}
+.frg__go{border:0;background:linear-gradient(96deg,#3fe0c8,#a6ee7c);color:#04140f}
+.frg__go span{margin-left:4px}
+.frg__go:hover{filter:brightness(1.08)}
+.frg__skip{border:1px solid rgba(232,244,242,.24);background:transparent;color:#a7c2bd}
+.frg__skip:hover{border-color:rgba(63,224,200,.5);color:#e8f4f2}
+.frg__arrow{position:absolute;right:48px;top:-34px;font-size:30px;line-height:1;color:#8bf3dd;text-shadow:0 0 16px rgba(63,224,200,.8);animation:frg-bob 1.3s ease-in-out infinite}
+@keyframes frg-pulse{0%,100%{box-shadow:0 0 0 9999px rgba(3,10,14,.68),0 0 20px rgba(63,224,200,.35)}50%{box-shadow:0 0 0 9999px rgba(3,10,14,.68),0 0 38px rgba(63,224,200,.75)}}
+@keyframes frg-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes frg-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@media(prefers-reduced-motion:reduce){.frg__spot,.frg__tip,.frg__arrow{animation:none}}
