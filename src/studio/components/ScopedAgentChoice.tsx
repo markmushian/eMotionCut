@@ -1,19 +1,22 @@
 import {useEffect,useRef,useState} from 'react';
-import {connectionRequest,type ConnectionView} from '../connections';
+import {useConnections,refreshConnections} from '../connection-store';
 import {getAgentSettings} from '../api';
 import {AGENT_ROWS,EFFORT_LABELS,type AgentChoice,type AgentModule,type AgentSettingsView} from '../agent-settings';
-import {LIGHT_AGENT_MODULES,connectionReadyForLight,type AgentConnectionId} from '../../../shared/agent-connections';
+import {LIGHT_AGENT_MODULES,connectionReadyForFilm,connectionReadyForLight,type AgentConnectionId} from '../../../shared/agent-connections';
 import {openSettings} from '../../onboarding/onboarding-store';
 import './scoped-agent-choice.css';
 /** A choice supplied by the owner (project, draft or one operation), never a write to global defaults. */
 export function ScopedAgentChoice({work,value,onChange,disabled=false,label='智能体',requiresImages=false}:{work:AgentModule;value?:AgentChoice;onChange:(choice:AgentChoice|undefined)=>void;disabled?:boolean;label?:string;requiresImages?:boolean}){
- const [connections,setConnections]=useState<ConnectionView[]>([]),[settings,setSettings]=useState<AgentSettingsView>(),[error,setError]=useState(''),[manual,setManual]=useState('');
- useEffect(()=>{let alive=true;const load=()=>{void Promise.all([connectionRequest<{connections:ConnectionView[]}>(),getAgentSettings()]).then(([list,view])=>{if(alive){setConnections(list.connections);setSettings(view);setError('')}}).catch(()=>{if(alive)setError('智能体列表暂时读不到，请重试')})};load();window.addEventListener('emotioncut-connections-changed',load);return()=>{alive=false;window.removeEventListener('emotioncut-connections-changed',load)}},[]);
+ const store=useConnections(),[settings,setSettings]=useState<AgentSettingsView>(),[error,setError]=useState(''),[manual,setManual]=useState('');
+ const connections=store.connections;
+ useEffect(()=>{void refreshConnections()},[]);
+ useEffect(()=>{let alive=true;const load=()=>{void getAgentSettings().then(view=>{if(alive){setSettings(view);setError('')}}).catch(()=>{if(alive)setError('智能体设置暂时读不到，请重试')})};load();window.addEventListener('emotioncut-connections-changed',load);return()=>{alive=false;window.removeEventListener('emotioncut-connections-changed',load)}},[]);
  const inherited=settings?.settings.modules[work];
  const effective=value??inherited;
  const agent=effective?.agent||'codex';
  const choice=connections.find(item=>item.id===agent);
- const available=connections.filter(item=>requiresImages?item.id==='codex'&&item.enabled&&item.connected&&item.cliInstalled:(LIGHT_AGENT_MODULES as readonly string[]).includes(work)?connectionReadyForLight(item):item.id==='codex'&&item.enabled&&item.connected&&item.cliInstalled);
+ // 出片类工作跟随出片就绪规则（与保存校验一致），轻活跟随轻活规则；不再把出片类硬锁在 Codex 一家。
+ const available=connections.filter(item=>requiresImages?item.id==='codex'&&item.enabled&&item.connected&&item.cliInstalled:(LIGHT_AGENT_MODULES as readonly string[]).includes(work)?connectionReadyForLight(item):connectionReadyForFilm(item));
  const unavailableDefault=!!settings&&!value&&!available.some(item=>item.id===agent);
  const codexModels=settings?.catalog?.models||[];
  const models=agent==='codex'&&choice?.mode==='cli'?codexModels:choice?.models||[];
