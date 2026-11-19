@@ -77,9 +77,9 @@ export function FirstAgentChoice({onDone}: {onDone: () => void}) {
     setSaving(true);setError('')
     try {
       if (!skip && chosen) {
-        // Read immediately before saving, so another settings page's edits are preserved.
-        const view = await getAgentSettings()
-        const response = await fetch('/api/editor/agent-settings/module/generalEditing', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({...view.settings.modules.generalEditing, agent: chosen.id, model: chosen.model || 'default'})})
+        // 服务端单模块保存自己做读-改-写（其他模块的原设置原样保留），只校验所选智能体的连接状态。
+        // 之前保存前先 GET 整份设置，那会顺带读 Codex 模型目录（拉起进程，冷启动 25 秒+）——保存因此卡死在「正在保存」。
+        const response = await fetch('/api/editor/agent-settings/module/generalEditing', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({agent: chosen.id, model: chosen.model || 'default', effort: 'medium'})})
         const result = await response.json()
         if (!response.ok || !result.ok) throw Error(result.error || '出片智能体没保存，请重试')
         window.dispatchEvent(new Event('emotioncut:general-agent-changed'))
