@@ -5,7 +5,6 @@ import {ConnectionEditor} from '@/studio/components/ConnectionSettings'
 import {connectionRequest} from '@/studio/connections'
 import {acceptConnection, refreshConnections, useConnections} from '@/studio/connection-store'
 import {AgentMark} from '@/studio/components/AgentMark'
-import {getAgentSettings} from '@/studio/api'
 import {UNIFIED_AGENTS} from './platform'
 import './first-agent-choice.css'
 
@@ -21,23 +20,33 @@ export function useFirstAgentChoice() {
   const enabled = isAgentOnboarding()
   const [open, setOpen] = useState(false)
   const [label, setLabel] = useState('选择出片智能体')
+  const [agent, setAgent] = useState<ConnectionId>()
   const [error, setError] = useState('')
   useEffect(() => {
     if (!enabled) return
     let alive = true
-    const refreshLabel = () => {
-      void Promise.all([getAgentSettings(), connectionRequest<{connections: ConnectionView[]}>()]).then(([view, list]) => {
-        const choice = list.connections.find(item => item.id === (view.settings.modules.generalEditing.agent || 'codex'))
-        // 顶栏按钮只报智能体名；命令行 / 账号登录这些接入细节留在设置里说
-        if (alive) setLabel(choice && connectionReadyForFilm(choice) ? choice.name : '选择出片智能体')
+    // 顶栏按钮只报智能体名；命令行 / 账号登录这些接入细节留在设置里说。
+    // label 刷新走 current-agent 轻量端点（同步读配置，毫秒级）：完整设置 GET 会顺带读 Codex 模型目录（spawn 进程，冷启动 25 秒+），保存后「好久才反应」就是被它拖的。
+    const refreshLabel = (instant?: {id: ConnectionId, name: string}) => {
+      if (instant) {setLabel(instant.name);setAgent(instant.id);return}
+      void Promise.all([
+        fetch('/api/editor/agent-settings/current-agent', {cache: 'no-store'}).then(response => response.json()),
+        connectionRequest<{connections: ConnectionView[]}>(),
+      ]).then(([current, list]) => {
+        if (!alive || !current?.ok) return
+        const choice = list.connections.find(item => item.id === (current.result?.agent || 'codex'))
+        if (choice && connectionReadyForFilm(choice)) {setLabel(choice.name);setAgent(choice.id)}
+        else {setLabel('选择出片智能体');setAgent(undefined)}
       }).catch(() => {})
     }
-    window.addEventListener('emotioncut:general-agent-changed', refreshLabel)
-    window.addEventListener('emotioncut-connections-changed', refreshLabel)
+    const saved = (event: Event) => refreshLabel((event as CustomEvent<{id: ConnectionId, name: string}>).detail)
+    const connectionsChanged = () => refreshLabel()
+    window.addEventListener('emotioncut:general-agent-changed', saved)
+    window.addEventListener('emotioncut-connections-changed', connectionsChanged)
     void seenRequest().then(value => {if (alive) {setOpen(!value.seenAt);if (value.seenAt) refreshLabel()}}).catch(() => {if (alive) setError('首次选择记录暂时读不到，可以点“选择出片智能体”重试。')})
-    return () => {alive = false;window.removeEventListener('emotioncut:general-agent-changed', refreshLabel);window.removeEventListener('emotioncut-connections-changed', refreshLabel)}
+    return () => {alive = false;window.removeEventListener('emotioncut:general-agent-changed', saved);window.removeEventListener('emotioncut-connections-changed', connectionsChanged)}
   }, [enabled])
-  return {enabled, open, error, label, show: () => {if (enabled) {setError('');setOpen(true)}}, close: () => {setError('');setOpen(false)}}
+  return {enabled, open, error, label, agent, show: () => {if (enabled) {setError('');setOpen(true)}}, close: () => {setError('');setOpen(false)}}
 }
 /** Same connection editor as Settings: a relay is advisory, never a second readiness gate. */
 export function FirstAgentChoice({onDone}: {onDone: () => void}) {
@@ -82,7 +91,7 @@ export function FirstAgentChoice({onDone}: {onDone: () => void}) {
         const response = await fetch('/api/editor/agent-settings/module/generalEditing', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({agent: chosen.id, model: chosen.model || 'default', effort: 'medium'})})
         const result = await response.json()
         if (!response.ok || !result.ok) throw Error(result.error || '出片智能体没保存，请重试')
-        window.dispatchEvent(new Event('emotioncut:general-agent-changed'))
+        window.dispatchEvent(new CustomEvent('emotioncut:general-agent-changed', {detail: {id: chosen.id, name: chosen.name}}))
       }
       await seenRequest('POST')
       onDone()
