@@ -99,7 +99,7 @@ export function GeneralEntrance({ entry: given, cat: givenCat, focusId, onEntry,
         <p className="ec-ent__lede">三段路：手上的东西 → 想做什么 → 挑一个 Motion 模板。挑中的模板会带着你的素材进剪辑台。</p>
       </div>
       <div className="ec-ent__head-actions">
-        {firstAgent.enabled && <button type="button" className="ec-btn" onClick={firstAgent.show} disabled={firstAgent.open}>{firstAgent.label}</button>}
+        {firstAgent.enabled && <button type="button" className="ec-btn" onClick={firstAgent.show} disabled={firstAgent.open}>{firstAgent.agent && <AgentMark id={firstAgent.agent} size={15}/>}<span>{firstAgent.label}</span></button>}
         <button type="button" className="ec-btn" onClick={() => navigate('/styles')} disabled={firstAgent.open}>
           查看模板库<ChevronRight size={14} aria-hidden="true" />
         </button>

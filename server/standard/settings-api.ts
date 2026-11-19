@@ -36,6 +36,8 @@ export async function handleSharedSettings(req:IncomingMessage,res:ServerRespons
   sendJson(res,404,{ok:false,error:'标准版没有这个浏览器接口'});return true;
  }
  if(parts[0]!=='agent-settings')return false;
+ // 顶栏按钮用的轻量读数：同步读配置文件（毫秒级）。完整 view 会顺带读 Codex 模型目录（spawn 进程，冷启动 25 秒+），不能让 label 等它。
+ if(parts[1]==='current-agent'&&req.method==='GET'){let agent='codex';try{agent=readAgentSettings().modules.generalEditing.agent||'codex'}catch{/* 配置损坏时按默认处理 */}return reply({agent});}
  if(parts[1]==='module'&&parts[2]&&req.method==='PUT')return reply(await saveModuleAgentChoice(parts[2] as Parameters<typeof saveModuleAgentChoice>[0],await bodyJson(req)));
  if(parts.length===1&&req.method==='GET')return reply(await agentSettingsView());
  if(parts.length===1&&req.method==='PUT')return reply(await saveAgentSettings(await bodyJson(req)));
