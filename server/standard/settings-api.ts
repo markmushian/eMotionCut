@@ -3,7 +3,7 @@ import {handleAgentConnectionsApi} from '../agent-connections-api.ts';
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {bodyJson,sendJson} from '../http.ts';
 import {handleSystemSettingsApi} from '../editor/api/system-settings.ts';
-import {agentSettingsView,saveAgentSettings,saveModuleAgentChoice,getAgentCatalog,chooseAgentCli} from '../agent-settings.ts';
+import {agentSettingsView,saveAgentSettings,saveModuleAgentChoice,getAgentCatalog,chooseAgentCli,readAgentSettings} from '../agent-settings.ts';
 import {testAgentConnection} from '../agent-connectivity.ts';
 import {agentInstallationStatus,saveAgentInstallation,openCodexTerminal} from '../agent-installations.ts';
 import {generalAgentOnboardingSeen,markGeneralAgentOnboardingSeen,markOnboardingSeen,onboardingSeen,openSystemPane,runOnboardingCheck} from '../onboarding.ts';

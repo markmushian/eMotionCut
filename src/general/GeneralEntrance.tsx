@@ -14,6 +14,7 @@ import { Composer, EntranceHandoff, entranceHasFreeStyle, entranceCountSuffix, c
 import catalog from './entrance-catalog.json'
 import '@/general/general.css'
 import { FirstAgentChoice, useFirstAgentChoice } from './FirstAgentChoice'
+import { AgentMark } from '@/studio/components/AgentMark'
 import '@/shell/entrance.css'
 import { asLibraryStyle, motionCategory, motionPurpose, motionStyleId, useMotionTemplates, type MotionTemplate } from '@/motion/motion-templates'
 import { useColumns } from '@/motion/use-columns'
