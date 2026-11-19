@@ -4,6 +4,7 @@ import {connectionReadyForFilm, type ConnectionId, type ConnectionView} from '..
 import {ConnectionEditor} from '@/studio/components/ConnectionSettings'
 import {connectionRequest} from '@/studio/connections'
 import {acceptConnection, refreshConnections, useConnections} from '@/studio/connection-store'
+import {AgentMark} from '@/studio/components/AgentMark'
 import {getAgentSettings} from '@/studio/api'
 import {UNIFIED_AGENTS} from './platform'
 import './first-agent-choice.css'
@@ -96,7 +97,7 @@ export function FirstAgentChoice({onDone}: {onDone: () => void}) {
       <div className="first-agent-option" data-active={section === 'cli' || undefined}>
         <button type="button" className="first-agent-option-head" disabled={editorBusy || saving || dirty} aria-expanded={section === 'cli'} onClick={() => changeSection('cli')}><span className="first-agent-radio" data-checked={section === 'cli' || undefined}/>已装好的命令行</button>
         {section === 'cli' && <>
-          {detecting && !cli.length ? <p className="first-agent-note">正在检测已安装的智能体…</p> : cli.length ? <div className="first-agent-detected">{cli.map(connection => <button key={connection.id} type="button" disabled={editorBusy || saving || dirty} aria-pressed={selected === connection.id} className="first-agent-chip" onClick={() => {setSelected(connection.id);setDirty(false)}}><b>{connection.name}</b><small data-connected={connection.connected || undefined}>{connection.connected ? '已接通' : '已安装'}{!connection.heavySupported ? ' · 出片待适配' : ''}</small>{selected === connection.id && <span aria-hidden>✓</span>}</button>)}</div> : <p className="first-agent-note first-agent-notice">没找到，去装一个　<a href="https://developers.openai.com/codex/cli/" target="_blank" rel="noreferrer">Codex 官网 ↗</a></p>}
+          {detecting && !cli.length ? <p className="first-agent-note">正在检测已安装的智能体…</p> : cli.length ? <div className="first-agent-detected">{cli.map(connection => <button key={connection.id} type="button" disabled={editorBusy || saving || dirty} aria-pressed={selected === connection.id} className="first-agent-chip" onClick={() => {setSelected(connection.id);setDirty(false)}}><AgentMark id={connection.id} size={20}/><b>{connection.name}</b><small data-connected={connection.connected || undefined}>{connection.connected ? '已接通' : '已安装'}{!connection.heavySupported ? ' · 出片待适配' : ''}</small>{selected === connection.id && <span aria-hidden>✓</span>}</button>)}</div> : <p className="first-agent-note first-agent-notice">没找到，去装一个　<a href="https://developers.openai.com/codex/cli/" target="_blank" rel="noreferrer">Codex 官网 ↗</a></p>}
           {chosen && (!chosen.connected || chosen.mode !== 'cli') && editor}
         </>}
       </div>
@@ -106,7 +107,7 @@ export function FirstAgentChoice({onDone}: {onDone: () => void}) {
         <p className="first-agent-note">只有 API 密钥、没装命令行的，只能做标题、翻译这类轻活，出片需要命令行</p>
       </div>
       <div className="first-agent-option" data-active={section === 'claude' || undefined}>
-        <button type="button" className="first-agent-option-head" disabled={editorBusy || saving || dirty} aria-expanded={section === 'claude'} onClick={() => changeSection('claude')}><span aria-hidden>✳</span>Claude Code<span className="first-agent-aside">{connections.find(item => item.id === 'claude')?.enabled ? '已打开' : '默认关闭'}</span></button>
+        <button type="button" className="first-agent-option-head" disabled={editorBusy || saving || dirty} aria-expanded={section === 'claude'} onClick={() => changeSection('claude')}><AgentMark id="claude" size={20}/>Claude Code<span className="first-agent-aside">{connections.find(item => item.id === 'claude')?.enabled ? '已打开' : '默认关闭'}</span></button>
         {section === 'claude' && editor}
       </div>
     </div>
