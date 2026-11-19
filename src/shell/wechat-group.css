@@ -1,0 +1,13 @@
+/* 左下角微信交流群：rail foot 里的一枚入口 + 弹出的横条卡片（样式参照用户给的横条设计）。 */
+.wechat-group{position:relative}
+.wechat-group__btn{color:var(--ec-ink-3)}
+.wechat-group__btn:hover{color:#07C160}
+
+.wechat-group__card{position:fixed;left:64px;bottom:52px;z-index:90;width:288px;border:1px solid var(--ec-rule);border-radius:12px;background:var(--ec-sink,#101820);box-shadow:0 18px 48px #0009;overflow:hidden}
+.wechat-group__head{display:flex;align-items:center;gap:10px;padding:12px 14px}
+.wechat-group__mark{display:grid;place-items:center;width:30px;height:30px;flex:none;border-radius:8px;background:#07C160;color:#fff}
+.wechat-group__name{font-size:13.5px;font-weight:600;color:var(--ec-ink)}
+.wechat-group__reveal{margin-left:auto;padding:6px 12px;border:1px solid var(--ec-rule);border-radius:8px;background:transparent;color:var(--ec-ink-2);font-size:12px;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.wechat-group__reveal:hover{background:#07C1601a;border-color:#07C16066;color:#07C160}
+.wechat-group__qr{display:block;width:232px;height:232px;margin:0 auto 14px;border-radius:10px;background:#fff}
+html[data-ec-mode="paper"] .wechat-group__card{box-shadow:0 18px 48px rgba(16,48,42,.22)}

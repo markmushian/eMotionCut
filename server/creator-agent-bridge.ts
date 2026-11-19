@@ -25,13 +25,21 @@ export async function saveCreatorAgentChoice(input:unknown):Promise<CreatorAgent
  const body=(input||{}) as {model?:unknown;effort?:unknown}
  const model=String(body.model||''),effort=String(body.effort||'')
  if(!model)throw Error('缺少模型选择')
+ // 「跟随默认」不走目录校验：通用剪辑出片可以切到 WorkBuddy 这类没有模型目录的智能体，
+ // 此时创作台只有一个合法选择就是跟随；目录只对要选具体模型的 Codex 有意义。
+ if(model===FOLLOW_DEFAULT){
+  const choice:CreatorAgentChoice={version:1,model,effort:'medium'}
+  fs.mkdirSync(path.dirname(choiceFile()),{recursive:true})
+  fs.writeFileSync(choiceFile(),JSON.stringify(choice,null,2))
+  return choice
+ }
  const settings=readAgentSettings()
  let models
  try{models=(await getAgentCatalog(settings.cliPath)).models}
  catch(error){throw Error(`无法读取模型目录，稍后再试：${error instanceof Error?error.message:String(error)}`)}
  if(!models.length)throw Error('Codex 没有返回可选模型')
- if(model!==FOLLOW_DEFAULT&&!models.some(m=>m.id===model))throw Error(`所选模型 ${model} 不在当前 Agent 的模型列表里`)
- const target=model===FOLLOW_DEFAULT?(models.find(m=>m.isDefault)||models[0]):models.find(m=>m.id===model)!
+ if(!models.some(m=>m.id===model))throw Error(`所选模型 ${model} 不在当前 Agent 的模型列表里`)
+ const target=models.find(m=>m.id===model)!
  if(!target.efforts.includes(effort))throw Error(`${target.name||target.id} 不支持推理强度 ${effort}`)
  const choice:CreatorAgentChoice={version:1,model,effort}
  fs.mkdirSync(path.dirname(choiceFile()),{recursive:true})

@@ -62,7 +62,9 @@ export function FirstAgentChoice({onDone}: {onDone: () => void}) {
   const detecting = store.loading || connections.some(connection => connection.state === 'pending')
   const chosen = connections.find(connection => connection.id === selected)
   const cli = connections.filter(connection => connection.id !== 'claude' && connection.cliInstalled)
-  const ready = chosen && (section === 'claude' || chosen.mode === section) && connectionReadyForFilm(chosen) && !dirty && !editorBusy && !detecting
+  // 「用这个开始」只看选中的这家探测完没有：别的智能体还在探测不该把它一起卡灰。
+  const chosenSettled = !!chosen && chosen.state !== 'pending'
+  const ready = chosen && (section === 'claude' || chosen.mode === section) && connectionReadyForFilm(chosen) && !dirty && !editorBusy && chosenSettled
   const changeSection = (next: typeof section, id: ConnectionId = next === 'claude' ? 'claude' : selected === 'claude' ? 'codex' : selected) => {
     setSection(next);setSelected(id);setDirty(false);setError('')
   }

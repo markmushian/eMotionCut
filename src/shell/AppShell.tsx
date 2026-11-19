@@ -10,6 +10,7 @@ import { DesktopActions } from '@/desktop/DesktopSession'
 import { studioScreenOnly } from '@/studio/library-edition'
 import { buildStages, entryForPath, stageForPath, type StageId } from './stages'
 import { SHELL_MODE_LABELS, applyShellMode, readShellMode, toggleShellMode, type ShellMode } from './shell-mode'
+import { WeChatGroup } from './WeChatGroup'
 import './tokens.css'
 import './shell.css'
 import './surfaces.css'
@@ -81,6 +82,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         })}
       </div>
       <div className="ec-rail__foot">
+        <WeChatGroup />
         <button type="button" onClick={() => setMode(toggleShellMode(mode))}
           aria-label={`切换外观，当前${SHELL_MODE_LABELS[mode]}`} title={`外观：${SHELL_MODE_LABELS[mode]}`}>
           {mode === 'night' ? <Moon size={15} /> : <Sun size={15} />}
