@@ -28,3 +28,17 @@ export const AGENT_MARKS:Partial<Record<AgentId,{viewBox:string;d:string;color:s
   zcode:{viewBox:'0 0 24 24',color:'#ffffff',d:'M5 4h14v3.4H9.6L19 16.6V20H5v-3.4h9.4L5 7.4z'},
   grok:{viewBox:'0 0 24 24',color:'#ffffff',d:'M3 3h4.6l4.9 7.3L17.4 3H21l-7.1 10.4L21 21h-4.6l-4.9-7.3L5.4 21H2l7.1-10.6z'},
 };
+
+
+/**
+ * 云端服务（kind:'service'）的品牌标记：火山方舟、MiniMax 语音、海螺、阿里百炼、HeyGen。
+ * MiniMax 语音直接复用 MiniMax Code 的官方路径（同一家公司）；其余按各家品牌色自绘近似标记：
+ * dreamina=火山引擎蓝的方舟层叠；hailuo=MiniMax 红的开环声纹；bailian=阿里云橙云朵；heygen=薄荷绿笑脸圆标。
+ */
+export const SERVICE_MARKS:Partial<Record<string,{viewBox:string;d:string;color:string}>>={
+ dreamina:{viewBox:'0 0 24 24',color:'#1F5AFF',d:'M12 2.6 21.2 8 12 13.4 2.8 8zM3 11.8l9 5.4 9-5.4v3.4l-9 5.4-9-5.4z'},
+ 'minimax-speech':{viewBox:'0 0 24 24',color:'#F23F5D',d:AGENT_MARKS.minimax!.d},
+ hailuo:{viewBox:'0 0 24 24',color:'#F23F5D',d:'M12 1a11 11 0 1 0 11 11h-4.4A6.6 6.6 0 1 1 12 5.4zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z'},
+ 'bailian-voice':{viewBox:'0 0 24 24',color:'#FF6A00',d:'M6.8 19a4.3 4.3 0 0 1-.7-8.55A6 6 0 0 1 17.7 9.3 4.5 4.5 0 0 1 17.3 19H6.8z'},
+ heygen:{viewBox:'0 0 24 24',color:'#14C58B',d:'M12 1a11 11 0 1 0 0 22 11 11 0 0 0 0-22zm0 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14zM8.6 9a1.4 1.4 0 1 0 0 2.8A1.4 1.4 0 0 0 8.6 9zm6.8 0a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8zM7.9 13.9c.9 1.9 2.4 3 4.1 3s3.2-1.1 4.1-3c-1.2.9-2.6 1.4-4.1 1.4s-2.9-.5-4.1-1.4z'},
+};
