@@ -317,7 +317,7 @@ async function providerResponseError(response:Response):Promise<Error>{
 async function requestJson(id:ConnectionId,route:string,deps:ConnectionDependencies={},body?:unknown,signal?:AbortSignal,transient?:{config:ConnectionConfig;key:string}){
  const config=transient?.config??getConnectionConfig(id),key=transient?.key??await (deps.store??connectionSecretStore()).read(id);if(!key)throw Error('请先保存 API 密钥');
  const headers:Record<string,string>={'Content-Type':'application/json'};
- if(connectionDefinition(id).protocol==='anthropic'){headers['x-api-key']=key;headers['anthropic-version']='2023-06-01';}else headers.Authorization=`Bearer ${key}`;
+ if(connectionDefinition(id).protocol==='anthropic'){headers['x-api-key']=key;headers['anthropic-version']='2023-06-01';}else if(connectionDefinition(id).protocol==='heygen'){headers['X-Api-Key']=key;}else headers.Authorization=`Bearer ${key}`;
  const endpoint=connectionEndpoint(validateConnectionBaseUrl(config.baseUrl),route);
  let response:Response;try{response=await (deps.fetcher??fetch)(endpoint,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:JSON.stringify(body),redirect:'error',signal:signal?AbortSignal.any([signal,AbortSignal.timeout(deps.timeoutMs??15000)]):AbortSignal.timeout(deps.timeoutMs??15000)});}catch{throw Error('连接超时或网络不可用，请检查地址、代理和网络');}
  if(!response.ok){const failure=await providerResponseError(response);if(connectionDefinition(id).kind==='agent'&&[404,405].includes(response.status)&&failure.message===statusError(response.status))failure.message=`接口格式不兼容：${endpoint} 不存在。接口地址通常只填到域名或 /v1，不用带 /messages、/responses 这类路径`;throw Object.assign(failure,{httpStatus:response.status});}
@@ -368,6 +368,8 @@ async function probeApiConnection(id:ConnectionId,config:ConnectionConfig,reques
    if(definition.protocol==='voices'){const data=await request('get_voice',{voice_type:'system'});const status=data.base_resp as {status_code?:number}|undefined;if(status?.status_code!==undefined&&status.status_code!==0)throw Error('密钥或服务权限不可用，请到 MiniMax 后台检查');if(!('system_voice' in data))throw Error('接口格式不兼容：没有返回音色列表');}
    else if(definition.protocol==='hailuo'){const data=await request('query/video_generation?page_num=1&page_size=1');if(!Array.isArray(data.items))throw Error('接口格式不兼容：没有返回任务列表');}
    else if(definition.protocol==='ark'){const data=await request('contents/generations/tasks?page_size=1');if(!Array.isArray(data.items))throw Error('接口格式不兼容：没有返回任务列表');}
+   else if(definition.protocol==='bailian'){const data=await request('services/audio/tts/customization',{model:'voice-enrollment',input:{action:'list_voice',prefix:'',page_size:1,page_index:0}});if(data.code)throw Error(`密钥不可用或未开通百炼服务：${String(data.message||data.code)}`);const output=data.output as {voice_list?:unknown[]}|undefined;if(!output||!Array.isArray(output.voice_list))throw Error('接口格式不兼容：没有返回音色列表');}
+   else if(definition.protocol==='heygen'){const data=await request('v2/avatars');if(data.error)throw Error(`HeyGen 密钥不可用：${String(data.error)}`);const payload=data.data as {avatars?:unknown[]}|undefined;if(!payload||!Array.isArray(payload.avatars))throw Error('接口格式不兼容：没有返回数字人列表');}
    else {
     let models:ConnectionModel[]=[];
     // Many relays have no model list. A model the user typed in can still be checked below.
@@ -398,7 +400,7 @@ async function probeApiConnection(id:ConnectionId,config:ConnectionConfig,reques
      if(typeof data.input_tokens!=='number'||!Number.isFinite(data.input_tokens)||data.input_tokens<0)throw Error('接口格式不兼容：没有返回输入Token计数；未发送生成请求');
     }else if(!models.length)return await minimalProbe();
    }
- return ['hailuo','ark'].includes(definition.protocol)?'连接正常；仅查询已有任务，API 生成业务待适配':definition.kind==='agent'&&definition.protocol==='chat'?'连接正常；API 密钥只能处理纯文字，出片要用命令行接入':'连接正常；已读取模型或音色列表，未运行生成任务';
+ return ['hailuo','ark','bailian','heygen'].includes(definition.protocol)?'连接正常；已校验密钥与账号权限，API 生成业务待适配':definition.kind==='agent'&&definition.protocol==='chat'?'连接正常；API 密钥只能处理纯文字，出片要用命令行接入':'连接正常；已读取模型或音色列表，未运行生成任务';
 }
 /** 一次性 API 连通检查：不读取/保存配置，不访问钥匙串，不检测或执行 CLI。 */
 export async function testTransientConnection(id:ConnectionId,input:unknown,deps:Pick<ConnectionDependencies,'fetcher'|'timeoutMs'>={}){

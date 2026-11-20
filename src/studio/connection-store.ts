@@ -10,7 +10,7 @@ const timers=new Map<ConnectionId,ReturnType<typeof setTimeout>>();
 const generations=new Map<ConnectionId,number>();
 let current:Promise<void>|undefined;
 export function acceptConnection(connection:ConnectionView){const old=snapshot.connections.find(item=>item.id===connection.id);if(old&&(connection.revision||0)<(old.revision||0))return;publish({connections:[...snapshot.connections.filter(item=>item.id!==connection.id),connection].sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id))});}
-const order=['codex','claude','kimi','deepseek','hermes','minimax','codebuddy','zcode','grok','copilot','cursor','opencode','qwen','dreamina','minimax-speech','hailuo'];
+const order=['codex','claude','kimi','deepseek','hermes','minimax','codebuddy','zcode','grok','copilot','cursor','opencode','qwen','dreamina','minimax-speech','hailuo','bailian-voice','heygen'];
 export function refreshConnections(){
  if(current)return current;
  const before=new Map(snapshot.connections.map(connection=>[connection.id,connection]));
