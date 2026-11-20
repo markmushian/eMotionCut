@@ -5,6 +5,7 @@ export function connectionLabel(connection:ConnectionView,waiting=false){
  if(waiting)return '等你登录';
  if(connection.id==='claude'&&!connection.enabled)return connection.cliInstalled?'已安装 · 默认不调用':'默认不调用';
  if(connection.connected)return '已接通';
+ if(connection.kind==='service')return connection.state==='pending'?'待适配':connection.hasKey?'密钥已保存 · 未接通':'未配置';
  if(connection.mode==='api')return connection.state==='pending'?'待适配':'未接通';
  if(!connection.cliInstalled)return '没找到命令行';
  return connection.cliAuthState==='needs-login'?'已安装 · 还没登录':connection.cliAuthState==='unknown'?'没查到':connection.cliAuthState==='pending'?'待适配':'未接通';

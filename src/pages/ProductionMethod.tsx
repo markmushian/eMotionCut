@@ -6,7 +6,7 @@ import {openSettings} from '../onboarding/onboarding-store'
 import './production-method.css'
 
 type ModeId='real'|'hybrid'|'avatar'
-type Readiness={checkedAt:string;local:EnvironmentCheck;cloud:{connected:boolean;privacy:string;capabilities:Array<{id:string;label:string;detail:string;connected:boolean}>}}
+type Readiness={checkedAt:string;local:EnvironmentCheck;cloud:{connected:boolean;provider:string|null;privacy:string;capabilities:Array<{id:string;label:string;detail:string;connected:boolean;guide?:string}>}}
 const MODES=[
  {id:'real' as const,icon:Video,name:'真人完整口播',note:'推荐',summary:'你负责表达，Agent 负责导演和剪辑。画面最真实，成本最低。'},
  {id:'hybrid' as const,icon:Mic2,name:'真人开头，云端续说',note:'20 秒样本',summary:'保留你的声音与出镜形象，长稿交给云端完成口型和动作。'},
@@ -41,9 +41,9 @@ export default function ProductionMethod(){
    <section className="production-method__plan">
     <div className="production-method__section-title"><div><h2>{MODES.find(x=>x.id===mode)?.name}</h2><p>{cloud?'生成工作在云端运行，本机只负责上传、预览和剪辑。':'无需数字人引擎，也不需要高性能显卡。'}</p></div><Film/></div>
     <ol>{STEPS[mode].map((step,index)=><li key={step}><span>{String(index+1).padStart(2,'0')}</span><p>{step}</p>{index===0&&<em>从这里开始</em>}</li>)}</ol>
-    {cloud?<div className="production-method__cloud-note"><Cloud/><div><b>云端连接器尚未配置</b><p>后续可接入第三方 API 或你自己的服务。eMotionCut 负责把 Agent 生成的分段稿、样本和参数发给服务，再把结果送回剪辑台，不要求用户在本地安装模型。</p><button className="production-method__cloud-link" type="button" onClick={()=>openSettings('integrations')}>去「账号与服务接入」配置云端服务 →</button></div></div>:<div className="production-method__local-note"><Check/><span>现有流程已可用：导入真人口播后，继续使用风格库、Motion 模板与 Agent 导演。</span></div>}
+    {cloud?data?.cloud.connected?<div className="production-method__cloud-note" data-ready><Cloud/><div><b>云端服务已接通{data.cloud.provider?` · ${data.cloud.provider}`:''}</b><p>声音克隆、口型驱动的接入状态见右侧；生成任务跑通后，这里会直接把分段稿发给服务并回传剪辑台。</p><button className="production-method__cloud-link" type="button" onClick={()=>openSettings('integrations')}>管理已接入的云端服务 →</button></div></div>:<div className="production-method__cloud-note"><Cloud/><div><b>云端连接器尚未配置</b><p>接入 MiniMax 语音（克隆声音）与 MiniMax 视频 · 海螺（口型驱动）即可点亮下面的云端能力。eMotionCut 负责把 Agent 生成的分段稿、样本和参数发给服务，再把结果送回剪辑台，不要求用户在本地安装模型。</p><button className="production-method__cloud-link" type="button" onClick={()=>openSettings('integrations')}>去「账号与服务接入」配置云端服务 →</button></div></div>:<div className="production-method__local-note"><Check/><span>现有流程已可用：导入真人口播后，继续使用风格库、Motion 模板与 Agent 导演。</span></div>}
     <div className="production-method__actions">
-     {cloud?<button className="ec-btn ec-btn--solid" type="button" onClick={()=>openSettings('integrations')}>连接云端服务</button>:<Link className="ec-btn ec-btn--solid" to="/general?entry=footage">导入口播素材</Link>}
+     {cloud?<button className="ec-btn ec-btn--solid" type="button" onClick={()=>openSettings('integrations')}>{data?.cloud.connected?'管理云端服务':'连接云端服务'}</button>:<Link className="ec-btn ec-btn--solid" to="/general?entry=footage">导入口播素材</Link>}
      <Link className="ec-btn" to="/studio">查看剪辑工程</Link>
     </div>
    </section>
@@ -52,7 +52,7 @@ export default function ProductionMethod(){
     <div className="production-method__aside-head"><div><h2>{cloud?'云端能力':'本机准备情况'}</h2><p>{data?`检查于 ${new Date(data.checkedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`:'正在读取'}</p></div><button type="button" onClick={check} disabled={busy} aria-label="重新检查"><RefreshCw className={busy?'is-spinning':''}/></button></div>
     {error&&<p className="production-method__error"><CircleAlert/>{error}</p>}
     {!cloud&&data&&<ul>{data.local.items.map(item=><li key={item.id} data-ok={item.ok||undefined}><span>{item.ok?<Check/>:<CircleAlert/>}</span><div><b>{item.label}</b><p>{item.ok?(item.version||item.path||'已就绪'):(item.message||'尚未安装')}</p>{!item.ok&&item.install&&<details><summary>查看安装方法</summary><pre>{item.install}</pre></details>}</div></li>)}</ul>}
-    {cloud&&data&&<><ul>{data.cloud.capabilities.map(item=><li key={item.id}><span><Cloud/></span><div><b>{item.label}</b><p>{item.detail}</p><small>连接服务后可用</small></div></li>)}</ul><p className="production-method__privacy">{data.cloud.privacy}</p></>}
+    {cloud&&data&&<><ul>{data.cloud.capabilities.map(item=><li key={item.id} data-ok={item.connected||undefined}><span><Cloud/></span><div><b>{item.label}</b><p>{item.detail}</p><small>{item.connected?'已接通':item.guide?`连接后可用 · ${item.guide}`:'连接服务后可用'}</small></div></li>)}</ul><p className="production-method__privacy">{data.cloud.privacy}</p></>}
     {!cloud&&data&&<p className="production-method__status" data-ready={missing.length===0||undefined}>{missing.length===0?'本机已具备 Agent 剪辑条件':`还缺 ${missing.length} 项，按上面的说明安装后重新检查`}</p>}
    </aside>
   </div>
